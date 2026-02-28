@@ -245,6 +245,8 @@ var i;
 for (i = 0; i < NC; i++) rVar[i] = 0.01;
 var sWarm = 0;
 var SM_ALPHA = 0.25; // EMA smoothing for raw → sm
+var vVol = 0; // extra-smooth volume for visual effects (prevents shaking)
+var VV_ALPHA = 0.06; // very slow visual volume tracking
 
 var hist = {S:[], D1:[], D2:[], t:[], ch:[]};
 var cPh = 0, lastBT = 0;
@@ -274,7 +276,7 @@ var mediaRec = null, recChunks = [], isRec = false;
 var aD = [], pB = [];
 var cv = document.getElementById('cv');
 var cx = cv.getContext('2d');
-var W = 2, H = 2, DPR = 1;
+var W = 2, H = 2;
 
 // DOM update throttle
 var lastDomUpdate = 0;
@@ -691,6 +693,8 @@ function extract(now) {
   for (j = 0; j < NC; j++) {
     sm[j] += (raw[j] - sm[j]) * SM_ALPHA;
   }
+  // Extra-heavy smoothing for visual effects (pulse, glow, core)
+  vVol += (sm[0] - vVol) * VV_ALPHA;
 }
 
 // ═══════ NORMALIZATION ═══════
@@ -930,11 +934,13 @@ function tick() {
 
 // ═══════ ATLAS ═══════
 var aBuf = null, abx = null, lastDI = 0;
-var prevW = 0, prevH = 0; // track previous size to prevent unnecessary rebuilds
+var prevW = 0, prevH = 0;
+var sizeLocked = false; // once true, never resize again (except orientation)
 
 function mkB() {
   aBuf = document.createElement('canvas');
-  aBuf.width = W; aBuf.height = H;
+  aBuf.width = W;
+  aBuf.height = H;
   abx = aBuf.getContext('2d');
   lastDI = 0;
 }
@@ -944,36 +950,34 @@ function resize() {
   if (!a) return;
   var cw = a.clientWidth;
   var ch = a.clientHeight;
-  if (cw < 2 || ch < 2) return;
+  if (cw < 10 || ch < 10) return;
 
-  // Only rebuild if size actually changed by more than 2px (prevents micro-jitter)
-  if (Math.abs(cw - prevW) < 3 && Math.abs(ch - prevH) < 3) return;
+  // Once locked, only allow resize if orientation flipped (width<->height swap)
+  if (sizeLocked) {
+    var wasLandscape = prevW > prevH;
+    var nowLandscape = cw > ch;
+    if (wasLandscape === nowLandscape) return; // same orientation — ignore
+  }
 
-  DPR = window.devicePixelRatio || 1;
   W = cw;
   H = ch;
   prevW = cw;
   prevH = ch;
 
-  // Set canvas resolution for crisp rendering
-  cv.width = Math.round(W * DPR);
-  cv.height = Math.round(H * DPR);
+  cv.width = W;
+  cv.height = H;
   cv.style.width = W + 'px';
   cv.style.height = H + 'px';
-  cx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
   mkB();
-  // Rescale offscreen buffer too
-  aBuf.width = Math.round(W * DPR);
-  aBuf.height = Math.round(H * DPR);
-  abx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  lastDI = 0;
+  sizeLocked = true; // lock after first setup
 }
 
+// Only listen for orientation changes, not every resize
+var resizeTimer = null;
 window.addEventListener('resize', function() {
-  // Debounce resize to prevent rapid fire on iOS
-  if (resize._raf) cancelAnimationFrame(resize._raf);
-  resize._raf = requestAnimationFrame(resize);
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(resize, 500); // 500ms debounce — only fires after resize settles
 });
 
 function aLay() {
@@ -1059,23 +1063,24 @@ function drawAtlas() {
     cx.beginPath(); cx.arc(L.cX, L.cY, L.r0 + j * L.cH, 0, PI2); cx.stroke();
   }
 
-  if (aBuf) cx.drawImage(aBuf, 0, 0, W, H);
+  if (aBuf) cx.drawImage(aBuf, 0, 0);
   if (!aD.length) return;
 
   var n = aD.length;
-  var vol = sm[0]; // use smoothed loudness
+  var vol = vVol; // heavily smoothed — NO jitter
   var stClr = STATES[domState].clr;
 
-  // Pulse ring
-  var pW = 2 + vol * 14;
+  // Pulse ring — fixed width, only opacity changes slowly
   cx.beginPath(); cx.arc(L.cX, L.cY, L.rP, 0, PI2);
-  cx.lineWidth = pW;
-  cx.strokeStyle = stClr + toHex2((vol * 0.65 + 0.04) * 255);
+  cx.lineWidth = 3;
+  cx.strokeStyle = stClr + toHex2((vol * 0.5 + 0.08) * 255);
   cx.stroke();
 
-  if (vol > 0.2) {
+  // Outer glow — always present, no pop-in threshold
+  var glowA = vol * 0.12;
+  if (glowA > 0.005) {
     var gg = cx.createRadialGradient(L.cX, L.cY, L.rP, L.cX, L.cY, L.rO + 10);
-    gg.addColorStop(0, stClr + toHex2(vol * 0.18 * 255));
+    gg.addColorStop(0, stClr + toHex2(glowA * 255));
     gg.addColorStop(1, stClr + '00');
     cx.beginPath(); cx.arc(L.cX, L.cY, L.rO + 10, 0, PI2);
     cx.fillStyle = gg; cx.fill();
@@ -1103,8 +1108,8 @@ function drawAtlas() {
   cx.arc(L.cX + (L.rO + 4) * Math.cos(la), L.cY + (L.rO + 4) * Math.sin(la), 4, 0, PI2);
   cx.fillStyle = '#ffffff'; cx.fill();
 
-  // Center core
-  var cR = L.rC * (1 + vol * 0.15);
+  // Center core — FIXED SIZE, only color/opacity responds to state
+  var cR = L.rC;
   var cg = cx.createRadialGradient(L.cX, L.cY, 0, L.cX, L.cY, cR);
   cg.addColorStop(0, stClr + '66');
   cg.addColorStop(0.6, stClr + '1a');
