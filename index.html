@@ -151,7 +151,6 @@ canvas#cv{position:absolute;top:0;left:0}
   <div id="atlas-wrap">
     <canvas id="cv"></canvas>
     <div id="snr-badge">SNR —</div>
-    <!-- Deception Interpretation Panel -->
     <div id="deception-panel">
       <div id="dp-title">Deception Analysis</div>
       <div class="dp-row"><span class="dp-lbl">F0 Elevation</span><span class="dp-val" id="dp-f0e">—</span></div>
@@ -178,8 +177,35 @@ canvas#cv{position:absolute;top:0;left:0}
 </div>
 <script>
 "use strict";
+// ═══════════════════════════════════════════════════════════════
+// CHORUS ORATOR — FULL SCIENTIFIC DSP + REAL-TIME CLASSIFICATION
+// ═══════════════════════════════════════════════════════════════
+// Fixes applied:
+//   FIX 1: True Mahalanobis via Cholesky Σ⁻¹ (removes Lombard double-counting)
+//   FIX 2: Pre-emphasis s'[n]=s[n]−0.97s[n−1] before LPC (glottal tilt removal)
+//   FIX 3: Zero-phase windowing for FFT (eliminates linear phase artifact)
+//   FIX 4: Two-tier VAD — loose for operation, HNR-gated for covariance purity
+//   FIX 5: Soft SNR gating (never hard-blocks scoring)
+//   FIX 6: Proper defaults (no fake 50% jitter/shimmer when silent)
+//   FIX 7: Correct calibration thresholds
+//   FIX 8: Responsive score scaling and faster warmup
+// ═══════════════════════════════════════════════════════════════
+
 var PI2=Math.PI*2, NC=8;
-var CFG={FFT:2048, PAD:8192, AHZ:30, SMOOTH:0.04, NTAU:20, PH_MIN:3, PH_SAL:0.28, DEG_S:8, MAX:9000, DEBOUNCE:6, DOM_HZ:12, YIN_THRESH:0.15, LPC_ORDER:12, PRE_EMPH:0.97};
+var CFG={
+  FFT:2048, PAD:8192, AHZ:30, SMOOTH:0.04, NTAU:20,
+  PH_MIN:3, PH_SAL:0.28, DEG_S:8, MAX:9000, DEBOUNCE:5,
+  DOM_HZ:12, YIN_THRESH:0.15, LPC_ORDER:12, PRE_EMPH:0.97,
+  // ── GATING THRESHOLDS (tuned for real mics) ──
+  VOICED_RMS_MULT: 1.8,     // was 3.0 — much too strict
+  SILENCE_RMS_MULT: 1.5,    // was 2.5 — was counting speech as silence
+  PITCH_CONF_MIN: 0.3,      // was 0.4 — more lenient
+  SNR_SOFT_MIN: 0,           // soft gate starts here (was hard 3dB cutoff!)
+  SNR_SOFT_MAX: 12,          // full confidence at 12dB
+  WARMUP_FRAMES: 60,         // was 150 — show scores in ~2s
+  BASELINE_MIN: 10,          // was 30 — start scoring sooner
+  DECEPT_WARMUP: 180         // was 300 — deception after 6s
+};
 
 var CH=[
   {key:'loud',  name:'Loud',      clr:'#e85d5d'},
@@ -204,25 +230,23 @@ var STATES=[
   {name:'PROCESSING',  clr:'#e8a83c', desc:'Cognitive load — pauses, wandering pitch, slow'},
   {name:'FATIGUED',    clr:'#7a7aaa', desc:'Reduced energy — quiet, flat, low HNR'},
   {name:'GUARDED',     clr:'#cc6b9b', desc:'Controlled delivery — compressed range, stable'},
-  {name:'DECEPTIVE',   clr:'#e07830', desc:'Arousal+control — pitch up but jitter down'},
+  {name:'DECEPTIVE',   clr:'#e07830', desc:'Arousal+control divergence — pitch up but jitter down'},
   {name:'SILENCE',     clr:'#555555', desc:'No signal'},
   {name:'CALIBRATING', clr:'#d4a855', desc:'Building baseline'}
 ];
 
-// ═══════════════════════════════════════════════════════
-// MAHALANOBIS STATE PROTOTYPES (literature-derived)
-// Each vector: [loud, pitch, rate, pause, bright, stability, hnr, shimmer_stab]
-// Normalized to unit length for cosine projection scoring
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// STATE PROTOTYPES (literature-derived, unit-normalized)
+// [loud, pitch, rate, pause, bright, stability, hnr, shimmer_stab]
+// ═══════════════════════════════════════════════════
 var STATE_PROTO_RAW=[
-  [ 0.0, 0.0, 0.0,-1.0, 0.0,+1.0,+1.0,+1.0],  // FOCUSED: stable, clear, flowing
-  [+1.0,+1.0,+1.0,-1.0,+1.0,-1.0,-1.0,-1.0],  // STRESSED: everything elevated, stability drops
-  [ 0.0, 0.0,-1.0,+1.0, 0.0,-1.0,-1.0, 0.0],  // PROCESSING: slow, pauses, jitter up
-  [-1.0,-1.0,-1.0, 0.0,-1.0,-0.5,-1.0,-1.0],  // FATIGUED: everything depressed
-  [ 0.0,+0.3,-0.7,+0.7, 0.0,+1.0, 0.0,+1.0],  // GUARDED: compressed, controlled, stable
-  [+0.7,+1.0,-0.5,+0.7, 0.0,+1.0,-0.7,+0.7]   // DECEPTIVE: arousal+control (Wu 2024)
+  [ 0.0, 0.0, 0.0,-1.0, 0.0,+1.0,+1.0,+1.0],  // FOCUSED
+  [+1.0,+1.0,+1.0,-1.0,+1.0,-1.0,-1.0,-1.0],  // STRESSED
+  [ 0.0, 0.0,-1.0,+1.0, 0.0,-1.0,-1.0, 0.0],  // PROCESSING
+  [-1.0,-1.0,-1.0, 0.0,-1.0,-0.5,-1.0,-1.0],  // FATIGUED
+  [ 0.0,+0.3,-0.7,+0.7, 0.0,+1.0, 0.0,+1.0],  // GUARDED
+  [+0.7,+1.0,-0.5,+0.7, 0.0,+1.0,-0.7,+0.7]   // DECEPTIVE (Wu 2024)
 ];
-
 var STATE_PROTO=[];
 for(var si=0;si<STATE_PROTO_RAW.length;si++){
   var v=STATE_PROTO_RAW[si],mag=0;
@@ -232,7 +256,7 @@ for(var si=0;si<STATE_PROTO_RAW.length;si++){
   STATE_PROTO.push(nv);
 }
 
-// ═══════ STATE ═══════
+// ═══════ RUNTIME STATE ═══════
 var micOn=false, demo=false, sessOn=false, sessT=0;
 var sens=2, sr=48000;
 var actx=null, an=null, gNode=null, compNode=null, micStr=null;
@@ -241,11 +265,12 @@ var nFloor=0.003, nFloorDb=-50;
 var raw=new Float32Array(NC), sm=new Float32Array(NC), zN=new Float32Array(NC);
 var rMu=new Float32Array(NC), rVar=new Float32Array(NC);
 var i; for(i=0;i<NC;i++)rVar[i]=0.01;
-var sWarm=0, SM_ALPHA=0.45, vVol=0, VV_ALPHA=0.15;
+var sWarm=0, SM_ALPHA=0.40, vVol=0, VV_ALPHA=0.15;
 var hist={S:[],D1:[],D2:[],t:[],ch:[]};
 var cPh=0, lastBT=0;
 var pHz=0, pConf=0, curSNR=0;
-var isVoiced=false;
+var isVoiced=false;       // Basic voiced (energy+pitch) — for baselines & scoring
+var isVoicedClean=false;  // Strict voiced (energy+pitch+HNR) — for covariance only
 var sylP=[], lastEV=0, eUp=false;
 var inP=false, pT=0, pLog=[];
 var blPitch=[], blLoud=[], blRate=[], BL=900;
@@ -255,7 +280,7 @@ var f1Hz=500, f2Hz=1500;
 var jitterRel=0, shimmerDb=0, hnrDb=0;
 var phaseCoher=0;
 var cogLoad=0, stressIdx=0, fatigueIdx=0, guardedIdx=0, focusIdx=0, deceptIdx=0;
-var dispLoad=0, dispStress=0, dispDecept=0, SCORE_ALPHA=0.22;
+var dispLoad=0, dispStress=0, dispDecept=0, SCORE_ALPHA=0.18;
 var domState=7, pendState=7, pendCount=0;
 var peakLoad=0, peakStress=0, peakFatigue=0, peakGuarded=0, peakDecept=0;
 var stateLog=[], eventMarks=[];
@@ -266,32 +291,26 @@ var ringHist=[], RING_MAX=300;
 var cv=document.getElementById('cv'), cx=cv.getContext('2d');
 var W=2, H=2;
 var lastDomUpdate=0, DOM_INTERVAL=1000/CFG.DOM_HZ;
-var yinBuf=null;
-var hanWin=null, yinWindowed=null;
-// Pre-emphasis buffer (FIX 2: glottal tilt removal)
-var preEmphBuf=null;
-
-// Zero-padded FFT buffers
+var yinBuf=null, hanWin=null, yinWindowed=null, preEmphBuf=null;
 var fftRe=null, fftIm=null, fftMag=null;
-var FFT_N=CFG.PAD; // 8192 → 5.86 Hz/bin resolution
+var FFT_N=CFG.PAD;
 
-// Covariance tracking for TRUE Mahalanobis (FIX 1)
+// Covariance tracking for Mahalanobis
 var covMu=new Float64Array(NC);
 var covMat=[]; for(i=0;i<NC;i++){covMat[i]=new Float64Array(NC);covMat[i][i]=0.01;}
 var covCount=0, covReady=false;
 var covSigma=new Float64Array(NC); for(i=0;i<NC;i++)covSigma[i]=0.1;
-// Inverse covariance (computed via Cholesky)
-var covInv=[]; for(i=0;i<NC;i++)covInv[i]=new Float64Array(NC);
 var covInvValid=false;
 
-// Deception sub-scores for the interpretation panel
+// Deception sub-scores
 var decSub={f0Elev:0,jitSuppress:0,shimCtrl:0,hnrDrop:0,pausePat:0,composite:0};
-
-// Field direction for visualization sweep
+// Field direction
 var fieldAngle=0, fieldMomentum=0;
+// Debug
+var dbgVoicedCount=0, dbgFrameCount=0;
 
 // ═══════════════════════════════════════════════════
-// DSP CORE: RADIX-2 FFT
+// DSP: RADIX-2 FFT
 // ═══════════════════════════════════════════════════
 function fftR2(re,im,N){
   var bits=Math.round(Math.log2(N)),i,j,k;
@@ -304,27 +323,15 @@ function fftR2(re,im,N){
         var nR=wr*wR-wi*wI;wi=wr*wI+wi*wR;wr=nR;}}}
 }
 
-// ═══════════════════════════════════════════════════
-// FIX 3: Zero-Phase Windowing + High-Res Spectrum
-// Circular shift places window center at index 0,
-// eliminating the linear phase artifact e^{-jωτ}
-// that was corrupting phase coherence measurements.
-// ═══════════════════════════════════════════════════
+// FIX 3: Zero-phase windowing — circular shift eliminates e^{-jωτ}
 function computeHighResSpectrum(buf,N,padN){
-  var halfW=N>>1;
-  // Zero the buffer
-  for(var i=0;i<padN;i++){fftRe[i]=0;fftIm[i]=0;}
-  // Circular shift: place center of windowed signal at index 0
+  var halfW=N>>1, i;
+  for(i=0;i<padN;i++){fftRe[i]=0;fftIm[i]=0;}
   // Right half of window → beginning of buffer
-  for(i=0;i<halfW;i++){
-    fftRe[i]=buf[halfW+i]*hanWin[halfW+i];
-  }
+  for(i=0;i<halfW;i++) fftRe[i]=buf[halfW+i]*hanWin[halfW+i];
   // Left half of window → end of buffer
-  for(i=0;i<halfW;i++){
-    fftRe[padN-halfW+i]=buf[i]*hanWin[i];
-  }
+  for(i=0;i<halfW;i++) fftRe[padN-halfW+i]=buf[i]*hanWin[i];
   fftR2(fftRe,fftIm,padN);
-  // Magnitude in dB
   var halfN=padN>>1;
   for(i=0;i<halfN;i++){
     var mag=Math.sqrt(fftRe[i]*fftRe[i]+fftIm[i]*fftIm[i]);
@@ -332,11 +339,9 @@ function computeHighResSpectrum(buf,N,padN){
   }
 }
 
-// ═══════════════════════════════════════════════════
-// HNR on HIGH-RES spectrum (5.86 Hz/bin)
-// ═══════════════════════════════════════════════════
+// HNR via harmonic peak-picking on high-res spectrum
 function computeHNR_highres(f0){
-  if(f0<70||f0>500)return 5;
+  if(f0<70||f0>500)return 0;
   var binHz=sr/FFT_N, halfN=FFT_N>>1;
   var nH=Math.min(10,Math.floor((sr/2)/f0));
   var hBW=Math.max(1,Math.round(15/binHz));
@@ -358,11 +363,7 @@ function computeHNR_highres(f0){
   return 10*Math.log10(harmE/noiseE);
 }
 
-// ═══════════════════════════════════════════════════
-// PHASE COHERENCE (ARS Integration)
-// Now uses zero-phase windowed FFT, so cos(φ₁ − 2φ₀)
-// measures true intrinsic phase symmetry, not time offset.
-// ═══════════════════════════════════════════════════
+// Phase coherence — now meaningful with zero-phase FFT (FIX 3)
 function computePhaseCoherence(f0){
   if(f0<70||f0>400)return 0;
   var binHz=sr/FFT_N;
@@ -375,23 +376,13 @@ function computePhaseCoherence(f0){
   return Math.cos(ph1-2*ph0);
 }
 
-// ═══════════════════════════════════════════════════
-// FIX 2: PRE-EMPHASIS FILTER
-// s'[n] = s[n] - 0.97*s[n-1]
-// Flattens the natural −6dB/octave glottal tilt so
-// Levinson-Durbin tracks F2/F3 accurately.
-// ═══════════════════════════════════════════════════
+// FIX 2: Pre-emphasis filter — flattens glottal tilt for accurate LPC
 function applyPreEmphasis(sig,out,N,coeff){
   out[0]=sig[0];
-  for(var n=1;n<N;n++){
-    out[n]=sig[n]-coeff*sig[n-1];
-  }
+  for(var n=1;n<N;n++) out[n]=sig[n]-coeff*sig[n-1];
 }
 
-// ═══════════════════════════════════════════════════
-// LPC FORMANT EXTRACTION (with pre-emphasis)
-// Levinson-Durbin → LP spectrum → peak picking
-// ═══════════════════════════════════════════════════
+// LPC formant extraction with pre-emphasis
 function lpcCoeffs(sig,N,order){
   var r=new Float64Array(order+1),j,k;
   for(k=0;k<=order;k++){var s=0;for(j=0;j<N-k;j++)s+=sig[j]*sig[j+k];r[k]=s;}
@@ -404,17 +395,14 @@ function lpcCoeffs(sig,N,order){
 }
 
 function extractFormants(sig,N,order,sampleRate){
-  // FIX 2: Apply pre-emphasis before LPC
   if(!preEmphBuf||preEmphBuf.length<N)preEmphBuf=new Float32Array(N);
   applyPreEmphasis(sig,preEmphBuf,N,CFG.PRE_EMPH);
-  
   var a=lpcCoeffs(preEmphBuf,N,order);
   if(!a)return{f1:500,f2:1500};
   var nEval=512, binHz=sampleRate/(2*nEval);
   var f1=500,f2=1500,pk1=-999,pk2=-999;
   for(var k=0;k<nEval;k++){
-    var w=Math.PI*k/nEval;
-    var re=1,im=0;
+    var w=Math.PI*k/nEval, re=1, im=0;
     for(var m=1;m<=order;m++){re-=a[m]*Math.cos(w*m);im+=a[m]*Math.sin(w*m);}
     var mag=-10*Math.log10(re*re+im*im+1e-20);
     var freq=k*binHz;
@@ -424,9 +412,7 @@ function extractFormants(sig,N,order,sampleRate){
   return{f1:f1,f2:f2};
 }
 
-// ═══════════════════════════════════════════════════
-// YIN PITCH DETECTION (de Cheveigné & Kawahara 2002)
-// ═══════════════════════════════════════════════════
+// YIN pitch detection
 function yinPitch(buf,sampleRate){
   var W=buf.length,halfW=W>>1;
   if(!yinBuf||yinBuf.length<halfW)yinBuf=new Float32Array(halfW);
@@ -445,32 +431,26 @@ function yinPitch(buf,sampleRate){
   return{f0:Math.max(0,f0),conf:Math.max(0,Math.min(1,1-yinBuf[bestTau]))};
 }
 
-// Median filter for octave-jump rejection
 function medianPitch(newF0){
-  pitchRaw.push(newF0);
-  if(pitchRaw.length>PMED_LEN)pitchRaw.shift();
+  pitchRaw.push(newF0);if(pitchRaw.length>PMED_LEN)pitchRaw.shift();
   if(pitchRaw.length<3)return newF0;
   var sorted=pitchRaw.slice().sort(function(a,b){return a-b;});
   return sorted[Math.floor(sorted.length/2)];
 }
 
 // ═══════════════════════════════════════════════════
-// FIX 1: TRUE MAHALANOBIS VIA CHOLESKY DECOMPOSITION
-// Computes Σ⁻¹ properly accounting for all off-diagonal
-// covariances (e.g. Lombard effect: pitch↔loudness).
-// Without this, arousal markers are double-counted.
+// FIX 1: TRUE MAHALANOBIS VIA CHOLESKY
 // ═══════════════════════════════════════════════════
 function choleskyDecompose(mat,n){
-  // Returns lower triangular L such that mat = L * L^T
-  var L=[];
-  for(var i=0;i<n;i++){L[i]=new Float64Array(n);}
+  var L=[], i, j, k;
+  for(i=0;i<n;i++) L[i]=new Float64Array(n);
   for(i=0;i<n;i++){
-    for(var j=0;j<=i;j++){
+    for(j=0;j<=i;j++){
       var sum=0;
-      for(var k=0;k<j;k++)sum+=L[i][k]*L[j][k];
+      for(k=0;k<j;k++) sum+=L[i][k]*L[j][k];
       if(i===j){
         var diag=mat[i][i]-sum;
-        if(diag<=1e-10)return null; // not positive-definite → add regularization
+        if(diag<=1e-10)return null;
         L[i][j]=Math.sqrt(diag);
       }else{
         L[i][j]=(L[j][j]>1e-10)?(mat[i][j]-sum)/L[j][j]:0;
@@ -480,83 +460,30 @@ function choleskyDecompose(mat,n){
   return L;
 }
 
-function choleskySolve(L,b,n){
-  // Solve L*L^T*x = b via forward then backward substitution
-  // Forward: L*y = b
-  var y=new Float64Array(n);
-  for(var i=0;i<n;i++){
-    var sum=0;for(var j=0;j<i;j++)sum+=L[i][j]*y[j];
-    y[i]=(L[i][i]>1e-10)?(b[i]-sum)/L[i][i]:0;
-  }
-  // Backward: L^T*x = y
-  var x=new Float64Array(n);
-  for(i=n-1;i>=0;i--){
-    var sum2=0;for(var j2=i+1;j2<n;j2++)sum2+=L[j2][i]*x[j2];
-    x[i]=(L[i][i]>1e-10)?(y[i]-sum2)/L[i][i]:0;
-  }
-  return x;
-}
-
-function computeCovInverse(){
-  // Regularize: add small diagonal (Tikhonov) to ensure positive-definiteness
-  var reg=[];
-  for(var i=0;i<NC;i++){
-    reg[i]=new Float64Array(NC);
-    for(var j=0;j<NC;j++)reg[i][j]=covMat[i][j];
-    reg[i][i]+=0.001; // regularization
-  }
-  var L=choleskyDecompose(reg,NC);
-  if(!L){covInvValid=false;return;}
-  // Compute inverse column by column
-  for(i=0;i<NC;i++){
-    var e=new Float64Array(NC);e[i]=1;
-    var col=choleskySolve(L,e,NC);
-    for(var j2=0;j2<NC;j2++)covInv[j2][i]=col[j2];
-  }
-  covInvValid=true;
-}
-
-function mahalanobisScore(x,mu){
-  // D_M = sqrt((x-μ)^T Σ^{-1} (x-μ))
-  var diff=new Float64Array(NC);
-  for(var i=0;i<NC;i++)diff[i]=x[i]-mu[i];
-  // Σ^{-1} * diff
-  var invDiff=new Float64Array(NC);
-  for(i=0;i<NC;i++){
-    var s=0;for(var j=0;j<NC;j++)s+=covInv[i][j]*diff[j];
-    invDiff[i]=s;
-  }
-  // diff^T * invDiff
-  var d2=0;
-  for(i=0;i<NC;i++)d2+=diff[i]*invDiff[i];
-  return d2>0?Math.sqrt(d2):0;
-}
-
 function mahalanobisTransform(x,mu){
-  // Returns Σ^{-1/2}*(x-μ) — the whitened deviation vector
-  // We use Cholesky: Σ = L*L^T, so Σ^{-1/2} = L^{-T}
-  // Actually, we just solve L*z = (x-μ) to get whitened vector
-  var diff=new Float64Array(NC);
-  for(var i=0;i<NC;i++)diff[i]=x[i]-mu[i];
-  
-  // Regularize and decompose
+  // Returns whitened vector: L⁻¹(x−μ) where Σ=LLᵀ
+  var diff=new Float64Array(NC), i, j;
+  for(i=0;i<NC;i++) diff[i]=x[i]-mu[i];
+  // Regularize covariance
   var reg=[];
   for(i=0;i<NC;i++){
     reg[i]=new Float64Array(NC);
-    for(var j=0;j<NC;j++)reg[i][j]=covMat[i][j];
-    reg[i][i]+=0.001;
+    for(j=0;j<NC;j++) reg[i][j]=covMat[i][j];
+    reg[i][i]+=0.002;
   }
   var L=choleskyDecompose(reg,NC);
   if(!L){
-    // Fallback: just use diagonal normalization
+    // Fallback to diagonal
     var z=new Float64Array(NC);
-    for(i=0;i<NC;i++)z[i]=covSigma[i]>0.01?diff[i]/covSigma[i]:0;
+    for(i=0;i<NC;i++) z[i]=covSigma[i]>0.01?diff[i]/covSigma[i]:0;
+    covInvValid=false;
     return z;
   }
-  // Forward substitute: L*z = diff
+  covInvValid=true;
+  // Forward substitution: L*z = diff
   var z2=new Float64Array(NC);
   for(i=0;i<NC;i++){
-    var sum=0;for(var j2=0;j2<i;j2++)sum+=L[i][j2]*z2[j2];
+    var sum=0;for(j=0;j<i;j++) sum+=L[i][j]*z2[j];
     z2[i]=(L[i][i]>1e-10)?(diff[i]-sum)/L[i][i]:0;
   }
   return z2;
@@ -587,7 +514,7 @@ async function reqMic(){
     hanWin=new Float32Array(an.fftSize);
     yinWindowed=new Float32Array(an.fftSize);
     preEmphBuf=new Float32Array(an.fftSize);
-    for(var k=0;k<an.fftSize;k++)hanWin[k]=0.5*(1-Math.cos(PI2*k/(an.fftSize-1)));
+    for(var k=0;k<an.fftSize;k++) hanWin[k]=0.5*(1-Math.cos(PI2*k/(an.fftSize-1)));
     fftRe=new Float64Array(FFT_N);fftIm=new Float64Array(FFT_N);fftMag=new Float32Array(FFT_N>>1);
     micOn=true;demo=false;
     document.getElementById('mic-ov').classList.remove('show');
@@ -600,6 +527,7 @@ function goDemo(){demo=true;micOn=false;nFloor=0.001;nFloorDb=-60;
   if(!fftRe){fftRe=new Float64Array(FFT_N);fftIm=new Float64Array(FFT_N);fftMag=new Float32Array(FFT_N>>1);}
   document.getElementById('mic-ov').classList.remove('show');startSess();}
 
+// FIX 7: Calibration — use 80th percentile (not 95th), lower multiplier
 function calibrate(){
   document.getElementById('cal-ov').classList.add('show');
   var smp=[],fr=0,tot=60,tempFT=new Float32Array(an.fftSize);
@@ -611,8 +539,12 @@ function calibrate(){
     document.getElementById('cal-fill').style.width=(fr/tot*100|0)+'%';
     document.getElementById('cal-st').textContent=fr<tot?(fr/tot*100|0)+'%':'Done';
     if(fr>=tot){clearInterval(iv);smp.sort(function(a,b){return a-b;});
-      nFloor=smp[Math.floor(smp.length*0.95)]*1.5;
+      // Use 80th percentile with 1.2x multiplier (was 95th/1.5x — too aggressive)
+      nFloor=smp[Math.floor(smp.length*0.80)]*1.2;
+      // Clamp: never let noise floor be too high
+      nFloor=Math.min(nFloor, 0.02);
       nFloorDb=nFloor>1e-10?20*Math.log10(nFloor):-60;
+      console.log('[CAL] nFloor='+nFloor.toFixed(6)+' nFloorDb='+nFloorDb.toFixed(1));
       var nN=Math.max(0,(nFloorDb+72)/72)*0.3;
       for(var k=0;k<NC;k++){rMu[k]=nN;rVar[k]=0.02;}
       setTimeout(function(){document.getElementById('cal-ov').classList.remove('show');startSess();},300);
@@ -621,7 +553,6 @@ function calibrate(){
 }
 
 function startSess(){document.getElementById('app').classList.add('on');sessOn=true;sessT=performance.now();updateMUI();setTimeout(function(){resize();requestAnimationFrame(render);},80);setInterval(tick,1000/CFG.AHZ);}
-
 function togMic(){if(micOn){if(micStr)micStr.getTracks().forEach(function(t){t.stop();});micOn=false;an=null;}else{document.getElementById('mic-ov').classList.add('show');}updateMUI();}
 function updateMUI(){var b=document.getElementById('mic-b'),l=document.getElementById('ml');if(micOn){b.classList.remove('off');l.textContent='Live';}else if(demo){b.classList.remove('off');l.textContent='Demo';}else{b.classList.add('off');l.textContent='Off';}}
 
@@ -636,110 +567,126 @@ function stopRec(){if(mediaRec&&mediaRec.state!=='inactive')mediaRec.stop();isRe
 function pad2(n){return n<10?'0'+n:''+n;}
 
 // ═══════════════════════════════════════════════════
-// EXTRACTION — 30Hz (ALL DSP FIXES APPLIED)
-// Signal chain: Mic → Compressor → Gain → Analyser
-//   → Hanning window → YIN → Median filter → pitch
-//   → Zero-phase Hanning → Zero-pad 8192 → FFT → HNR + Phase coherence
-//   → Pre-emphasis → Windowed signal → LPC(12) → Formants (F1/F2)
-//   → RMS → loudness, syllable rate, pauses
-//   → pitchBuf → jitter, rmsBuf → shimmer
-//   → HNR-gated VAD for baseline/covariance purity
+// EXTRACTION — 30Hz tick
+// TWO-TIER VAD (FIX 4):
+//   isVoiced      = energy + pitch confidence (loose) → baselines, scoring
+//   isVoicedClean = isVoiced + HNR > 0dB (strict) → covariance matrix only
 // ═══════════════════════════════════════════════════
 function extract(now){
   var j, rms=0;
   if(micOn && an){
     an.getFloatTimeDomainData(fT);
+    dbgFrameCount++;
 
     // RMS
     var sq=0;for(j=0;j<fT.length;j++)sq+=fT[j]*fT[j];
     rms=Math.sqrt(sq/fT.length);
 
-    // Adaptive noise floor
-    if(rms<nFloor*2){nFloor+=(rms-nFloor)*0.002;nFloorDb=nFloor>1e-10?20*Math.log10(nFloor):-60;}
+    // Adaptive noise floor — ONLY adapt downward during genuine silence
+    if(rms<nFloor*1.2 && rms>1e-8){nFloor+=(rms-nFloor)*0.001;nFloorDb=nFloor>1e-10?20*Math.log10(nFloor):-60;}
 
     // 0: LOUDNESS
     var dbfs=rms>1e-10?20*Math.log10(rms):-72;
-    var dbR=Math.max(12,Math.abs(nFloorDb));
+    var dbR=Math.max(15, Math.abs(nFloorDb));
     raw[0]=Math.max(0,Math.min(1,(dbfs-nFloorDb)/dbR));
     curSNR=dbfs-nFloorDb;
 
-    // FIX 4: HNR-gated VAD — reject unvoiced/noise from baseline
-    // Basic energy gate first
-    var energyVoiced=rms>nFloor*3;
+    // Basic energy gate — LOOSE (FIX: was nFloor*3, now nFloor*1.8)
+    var energyVoiced = rms > nFloor * CFG.VOICED_RMS_MULT;
 
-    // Apply Hanning window for YIN
-    for(j=0;j<fT.length;j++)yinWindowed[j]=fT[j]*hanWin[j];
+    // Apply Hanning window
+    for(j=0;j<fT.length;j++) yinWindowed[j]=fT[j]*hanWin[j];
 
-    // 1: PITCH — YIN on windowed signal → Median filter
+    // 1: PITCH — YIN → Median filter
     var yin=yinPitch(yinWindowed,sr);
     var rawF0=yin.f0; pConf=yin.conf;
-    if(pConf>0.4&&rawF0>60&&rawF0<500){
+    if(pConf>0.3 && rawF0>60 && rawF0<500){
       pHz=medianPitch(rawF0);
     }else{pHz=rawF0;}
     raw[1]=Math.max(0,Math.min(1,(pHz-80)/320))*Math.min(1,pConf*1.5);
 
-    // ══ Zero-phase FFT for high-res spectrum ══
+    // ══ Zero-phase FFT ══
     if(fftRe){
       computeHighResSpectrum(fT,fT.length,FFT_N);
 
-      // 4: BRIGHTNESS (from high-res spectrum)
+      // 4: BRIGHTNESS
       var hrBinHz=sr/FFT_N, halfN=FFT_N>>1;
       var sW=0,sE=0;
       for(j=1;j<halfN;j++){var e2=Math.pow(10,fftMag[j]/20);var ee=e2*e2;sW+=j*hrBinHz*ee;sE+=ee;}
       raw[4]=Math.max(0,Math.min(1,(sE>0?sW/sE:0)/5000));
 
-      // 6: HNR — high-res harmonic peak-picking
-      if(pHz>70&&pConf>0.3){
+      // 6: HNR
+      if(pHz>70 && pConf>0.25){
         hnrDb=computeHNR_highres(pHz);
-        hnrDb=Math.max(-5,Math.min(30,hnrDb));
-        raw[6]=Math.max(0,Math.min(1,(hnrDb+5)/30));
-      }else{raw[6]=0;hnrDb=-5;}
+        hnrDb=Math.max(-10,Math.min(30,hnrDb));
+        raw[6]=Math.max(0,Math.min(1,(hnrDb+10)/35));
+      }else{
+        raw[6]*=0.95; // decay slowly, don't slam to 0
+        hnrDb=hnrDb*0.95;
+      }
 
-      // Phase coherence (now meaningful with zero-phase windowing)
-      if(pHz>70&&pConf>0.4){
+      // Phase coherence
+      if(pHz>70 && pConf>0.3){
         var rawPC=computePhaseCoherence(pHz);
         phaseCoher+=(rawPC-phaseCoher)*0.15;
       }
     }
 
-    // FIX 4: Full VAD = energy + HNR + pitch confidence
-    // HNR < 0 means the signal is unvoiced (fricatives, noise)
-    isVoiced=energyVoiced && pConf>0.4 && pHz>60 && pHz<500 && hnrDb>0;
+    // ═══ TWO-TIER VAD (FIX 4) ═══
+    // TIER 1: Basic voiced — for baselines, jitter, shimmer, scoring
+    isVoiced = energyVoiced && pConf > CFG.PITCH_CONF_MIN && pHz > 60 && pHz < 500;
+    // TIER 2: Clean voiced — for covariance matrix only (rejects noise/fricatives)
+    isVoicedClean = isVoiced && hnrDb > 0;
 
-    // Push to baseline ONLY when truly voiced (HNR-gated)
     if(isVoiced){
+      dbgVoicedCount++;
       pitchBuf.push(pHz);if(pitchBuf.length>JBUF)pitchBuf.shift();
       blPitch.push(pHz);if(blPitch.length>BL)blPitch.shift();
       blLoud.push(raw[0]);if(blLoud.length>BL)blLoud.shift();
       rmsBuf.push(rms);if(rmsBuf.length>JBUF)rmsBuf.shift();
     }
 
-    // 2: RATE (syllable detection needs energy gate, not full voiced gate)
+    // 2: RATE
     if(energyVoiced){if(rms>lastEV*1.12&&!eUp)eUp=true;else if(rms<lastEV*0.88&&eUp){eUp=false;sylP.push(now);}}
     lastEV=rms;var t2=now-2000;while(sylP.length&&sylP[0]<t2)sylP.shift();
     raw[2]=Math.max(0,Math.min(1,sylP.length/12));
     if(isVoiced){blRate.push(raw[2]);if(blRate.length>BL)blRate.shift();}
 
-    // 3: PAUSES
-    var isSil=rms<nFloor*2.5;
+    // 3: PAUSES — use lower threshold (FIX: was nFloor*2.5)
+    var isSil = rms < nFloor * CFG.SILENCE_RMS_MULT;
     if(isSil&&!inP){inP=true;pT=now;}else if(!isSil&&inP){inP=false;pLog.push({s:pT,e:now});}
     var t3=now-3000,silMs=0;
     for(j=pLog.length-1;j>=0;j--){var p=pLog[j];if(p.e<t3)break;silMs+=Math.min(p.e,now)-Math.max(p.s,t3);}
     if(inP)silMs+=now-Math.max(pT,t3);
     raw[3]=Math.max(0,Math.min(1,silMs/3000));
 
-    // FORMANT — LPC with pre-emphasis (FIX 2)
+    // FORMANTS — LPC with pre-emphasis (FIX 2)
     if(isVoiced&&yinWindowed){
       var fmt=extractFormants(yinWindowed,fT.length,CFG.LPC_ORDER,sr);
       f1Hz=f1Hz*0.7+fmt.f1*0.3;
       f2Hz=f2Hz*0.7+fmt.f2*0.3;
     }
 
-    // 5: JITTER — period domain (Teixeira 2013)
-    if(pitchBuf.length>=3){var sumPD=0,sumT=0;for(j=1;j<pitchBuf.length;j++){var Tp=1.0/pitchBuf[j-1],Tc=1.0/pitchBuf[j];sumPD+=Math.abs(Tc-Tp);sumT+=Tc;}var meanT=sumT/(pitchBuf.length-1);jitterRel=meanT>0?(sumPD/(pitchBuf.length-1))/meanT:0;raw[5]=Math.max(0,Math.min(1,1-jitterRel*20));}else{raw[5]=0.5;jitterRel=0.025;}
+    // 5: JITTER (FIX 6: default to 0 when not voiced, not 0.5)
+    if(pitchBuf.length>=3 && isVoiced){
+      var sumPD=0,sumT=0;
+      for(j=1;j<pitchBuf.length;j++){var Tp=1.0/pitchBuf[j-1],Tc=1.0/pitchBuf[j];sumPD+=Math.abs(Tc-Tp);sumT+=Tc;}
+      var meanT=sumT/(pitchBuf.length-1);
+      jitterRel=meanT>0?(sumPD/(pitchBuf.length-1))/meanT:0;
+      raw[5]=Math.max(0,Math.min(1,1-jitterRel*20));
+    }else if(!isVoiced){
+      raw[5]*=0.92; // decay toward 0
+    }
 
-    // 7: SHIMMER (Teixeira 2013)
-    if(rmsBuf.length>=3){var shimSum=0;for(j=1;j<rmsBuf.length;j++){if(rmsBuf[j-1]>1e-10)shimSum+=Math.abs(20*Math.log10(rmsBuf[j]/rmsBuf[j-1]));}shimmerDb=shimSum/(rmsBuf.length-1);raw[7]=Math.max(0,Math.min(1,1-shimmerDb/3.0));}else{raw[7]=0.5;shimmerDb=0.5;}
+    // 7: SHIMMER (FIX 6: default to 0 when not voiced, not 0.5)
+    if(rmsBuf.length>=3 && isVoiced){
+      var shimSum=0;
+      for(j=1;j<rmsBuf.length;j++){if(rmsBuf[j-1]>1e-10)shimSum+=Math.abs(20*Math.log10(rmsBuf[j]/rmsBuf[j-1]));}
+      shimmerDb=shimSum/(rmsBuf.length-1);
+      raw[7]=Math.max(0,Math.min(1,1-shimmerDb/3.0));
+    }else if(!isVoiced){
+      raw[7]*=0.92; // decay toward 0
+    }
 
   } else if(demo){
     var t=(now-sessT)*0.001, arc=Math.min(1,t/4);
@@ -756,7 +703,7 @@ function extract(now){
     raw[6]=Math.max(0,Math.min(1,(0.55-load*0.15-stress*0.15-decep*0.18-fatigue*0.10+0.18*Math.sin(t*0.55))*arc));
     raw[7]=Math.max(0,Math.min(1,0.55+decep*0.15-stress*0.12-fatigue*0.08+0.12*Math.sin(t*0.72+1)+n3));
     pHz=155+65*Math.sin(t*0.52)+stress*30+decep*35+load*15-fatigue*18+n1*40;
-    pConf=0.7+0.2*Math.sin(t*0.6);isVoiced=true;
+    pConf=0.7+0.2*Math.sin(t*0.6);isVoiced=true;isVoicedClean=true;
     jitterRel=Math.max(0,0.018+stress*0.025-decep*0.016+load*0.012+0.005*Math.sin(t*0.8));
     shimmerDb=Math.max(0,0.35+stress*0.45-decep*0.30+0.10*Math.sin(t*0.6));
     hnrDb=14-stress*6-decep*6-fatigue*4+2*Math.sin(t*0.5);
@@ -788,8 +735,8 @@ function normalize(dt){
   }
   if(sWarm<600)sWarm++;
   
-  // FIX 4: Only update covariance on HNR-gated voiced frames
-  if(isVoiced&&sWarm>30){
+  // FIX 4: Covariance ONLY from clean voiced frames (HNR>0)
+  if(isVoicedClean && sWarm>20){
     covCount++;
     var cAlpha=covCount<100?1.0/covCount:0.008;
     for(var i2=0;i2<NC;i2++){
@@ -798,39 +745,46 @@ function normalize(dt){
       for(var k=0;k<=i2;k++){
         var dk=raw[k]-covMu[k];
         covMat[i2][k]+=(di*dk-covMat[i2][k])*cAlpha;
-        if(k<i2)covMat[k][i2]=covMat[i2][k];
+        if(k<i2) covMat[k][i2]=covMat[i2][k];
       }
       covSigma[i2]=Math.sqrt(Math.max(0.005,covMat[i2][i2]));
     }
-    if(covCount>=100){
-      covReady=true;
-      // Recompute inverse periodically (every ~30 frames)
-      if(covCount%30===0||!covInvValid)computeCovInverse();
-    }
+    if(covCount>=80) covReady=true;
   }
 }
 
 // ═══════════════════════════════════════════════════
-// STATE CLASSIFICATION — TRUE MAHALANOBIS (FIX 1)
-// Uses full Σ⁻¹ via Cholesky, removing Lombard
-// effect double-counting and all independence bias.
+// STATE CLASSIFICATION
+// FIX 1: True Mahalanobis (Cholesky) when cov ready
+// FIX 5: Soft SNR gate (never hard-blocks scoring)
+// FIX 8: Responsive scaling
 // ═══════════════════════════════════════════════════
 function arrMean(a){if(!a.length)return 0;var s=0;for(var j=0;j<a.length;j++)s+=a[j];return s/a.length;}
 function arrStd(a){var m=arrMean(a),s=0;for(var j=0;j<a.length;j++)s+=(a[j]-m)*(a[j]-m);return Math.sqrt(s/Math.max(1,a.length));}
 function safeNum(v){return(v!==v||!isFinite(v))?0:v;}
 
 function computeStates(){
-  if(blPitch.length<30||sWarm<150){setDomState(7);cogLoad=0;stressIdx=0;deceptIdx=0;return;}
-  if(raw[0]<0.05&&raw[3]>0.5){setDomState(6);cogLoad=0;stressIdx=0;deceptIdx=0;return;}
-
-  // Soft SNR gate
-  var snrConf=1;
-  if(!demo){
-    if(curSNR<3){setDomState(6);return;}
-    snrConf=Math.min(1,Math.max(0.2,(curSNR-3)/12));
+  // Need minimum baseline before scoring
+  if(blPitch.length < CFG.BASELINE_MIN || sWarm < CFG.WARMUP_FRAMES){
+    setDomState(7);cogLoad=0;stressIdx=0;deceptIdx=0;return;
+  }
+  // Silence detection — but DON'T zero scores, just set state
+  if(raw[0]<0.03 && raw[3]>0.7){
+    setDomState(6);
+    // Let existing scores decay slowly rather than slam to 0
+    cogLoad=Math.round(cogLoad*0.92);
+    stressIdx=Math.round(stressIdx*0.92);
+    deceptIdx=Math.round(deceptIdx*0.92);
+    return;
   }
 
-  // ── Derived features from 30-second baseline ──
+  // FIX 5: SOFT SNR gate — scales confidence, NEVER hard-blocks
+  var snrConf=1;
+  if(!demo){
+    snrConf=Math.max(0.15, Math.min(1, (curSNR - CFG.SNR_SOFT_MIN) / (CFG.SNR_SOFT_MAX - CFG.SNR_SOFT_MIN)));
+  }
+
+  // Derived features from baseline
   var pMu=arrMean(blPitch),pSd=arrStd(blPitch);
   var lMu=arrMean(blLoud),rMean=arrMean(blRate);
   var pitchCV=safeNum(pMu>1?pSd/pMu:0);
@@ -842,41 +796,39 @@ function computeStates(){
   var loudDef=safeNum(Math.max(0,lMu-raw[0]));
   var f1Elev=safeNum(Math.max(0,(f1Hz-550)/400));
 
-  if(covReady&&covInvValid){
-    // ══ TRUE MAHALANOBIS SCORING (FIX 1) ══
-    // Whiten the current frame using Cholesky of Σ
-    // This removes ALL natural correlations (Lombard, etc.)
-    var zFrame=mahalanobisTransform(raw,covMu);
-    // Clip extreme z-scores
-    for(var i=0;i<NC;i++){
+  if(covReady){
+    // ══ TRUE MAHALANOBIS (FIX 1) ══
+    var rawArr=new Float64Array(NC);
+    for(var i=0;i<NC;i++) rawArr[i]=raw[i];
+    var zFrame=mahalanobisTransform(rawArr,covMu);
+    for(i=0;i<NC;i++){
       zFrame[i]=safeNum(zFrame[i]);
       zFrame[i]=Math.max(-4,Math.min(4,zFrame[i]));
     }
     
-    // Project whitened vector onto each state prototype
+    // Project whitened vector onto prototypes
     var scores=new Float64Array(6);
     for(var s=0;s<6;s++){
       var dot=0;
-      for(i=0;i<NC;i++)dot+=zFrame[i]*STATE_PROTO[s][i];
+      for(i=0;i<NC;i++) dot+=zFrame[i]*STATE_PROTO[s][i];
       scores[s]=Math.max(0,dot*snrConf);
     }
-    // Ancillary features (small corrections)
+    // Ancillary boosts
     scores[0]+=Math.max(0,phaseCoher)*0.15;
     scores[1]+=f1Elev*0.10;
     scores[2]+=f1Elev*0.08;
     scores[5]+=Math.max(0,phaseCoher)*0.08;
 
-    // Scale to 0-100 with better dynamic range
-    var scaleF=25; // tuned for perceptual responsiveness
+    var scaleF=28;
     focusIdx=Math.round(Math.min(100,scores[0]*scaleF));
     stressIdx=Math.round(Math.min(100,scores[1]*scaleF));
     cogLoad=Math.round(Math.min(100,scores[2]*scaleF));
     fatigueIdx=Math.round(Math.min(100,scores[3]*scaleF));
     guardedIdx=Math.round(Math.min(100,scores[4]*scaleF));
-    deceptIdx=Math.round(Math.min(100,(sWarm>300?scores[5]:0)*scaleF));
+    deceptIdx=Math.round(Math.min(100,(sWarm>CFG.DECEPT_WARMUP?scores[5]:0)*scaleF));
 
   } else {
-    // ══ FALLBACK: Absolute + relative thresholds (pre-Mahalanobis) ══
+    // ══ FALLBACK: Heuristic scoring ══
     var cl=0;
     cl+=Math.min(1,pitchCV*8)*0.18;
     cl+=Math.min(1,raw[3]*1.8)*0.22;
@@ -893,7 +845,7 @@ function computeStates(){
     st+=Math.min(1,Math.max(0,jitterRel-0.012)*25)*0.14;
     st+=Math.min(1,f1Elev*1.5)*0.12;
     st+=Math.max(0,Math.min(1,(12-hnrDb)/15))*0.12;
-    st+=Math.max(0,Math.min(1,(raw[0]-0.5)*3))*0.08;
+    st+=Math.max(0,Math.min(1,(raw[0]-0.4)*3))*0.08;
     stressIdx=Math.round(Math.min(100,safeNum(st*snrConf)*100));
 
     var ft=0;
@@ -915,7 +867,7 @@ function computeStates(){
     guardedIdx=Math.round(Math.min(100,safeNum(gu*snrConf)*100));
 
     var dc=0;
-    if(sWarm>300){
+    if(sWarm>CFG.DECEPT_WARMUP){
       dc+=Math.min(1,pitchElev*6)*0.20;
       dc+=Math.max(0,Math.min(1,(0.09-pitchCV)*15))*0.14;
       dc+=Math.min(1,raw[3]*1.5)*0.12;
@@ -929,8 +881,8 @@ function computeStates(){
     deceptIdx=Math.round(Math.min(100,safeNum(dc*snrConf)*100));
 
     var fo=0;
-    fo+=Math.max(0,Math.min(1,(raw[5]-0.5)*3))*0.18;
-    fo+=Math.max(0,Math.min(1,(hnrDb-8)/12))*0.18;
+    fo+=Math.max(0,Math.min(1,(raw[5]-0.4)*3))*0.18;
+    fo+=Math.max(0,Math.min(1,(hnrDb-5)/12))*0.18;
     var cvGood=(pitchCV>0.04&&pitchCV<0.15)?1-Math.abs(pitchCV-0.08)*12:0;
     fo+=Math.max(0,Math.min(1,cvGood))*0.14;
     fo+=Math.max(0,Math.min(1,(0.25-raw[3])*5))*0.14;
@@ -943,7 +895,7 @@ function computeStates(){
     focusIdx=Math.round(Math.min(100,safeNum(fo)*100));
   }
 
-  // ══ DECEPTION SUB-SCORES (for interpretation panel) ══
+  // Deception sub-scores for panel
   decSub.f0Elev=safeNum(pitchElev*100);
   decSub.jitSuppress=safeNum(Math.max(0,1-jitterRel*50)*100);
   decSub.shimCtrl=safeNum(Math.max(0,raw[7])*100);
@@ -951,10 +903,12 @@ function computeStates(){
   decSub.pausePat=safeNum(raw[3]*100);
   decSub.composite=deceptIdx;
 
+  // Winner-take-all state selection
   var allScores=[focusIdx,stressIdx,cogLoad,fatigueIdx,guardedIdx,deceptIdx];
   var maxS=0,maxI=0;
   for(var k=0;k<allScores.length;k++){if(allScores[k]>maxS){maxS=allScores[k];maxI=k;}}
-  setDomState(maxI);
+  if(maxS<3){setDomState(6);} // All scores near zero = silence
+  else setDomState(maxI);
 
   if(cogLoad>peakLoad)peakLoad=cogLoad;
   if(stressIdx>peakStress)peakStress=stressIdx;
@@ -975,10 +929,8 @@ function compField(now){
   var D1=n>=2?(hist.S[n-1]-hist.S[n-2])*CFG.AHZ:0;
   var D2=n>=3?(hist.S[n-1]-2*hist.S[n-2]+hist.S[n-3])*CFG.AHZ*CFG.AHZ:0;
   hist.D1.push(D1);hist.D2.push(D2);
-  
-  // Field direction: computed from weighted z-score gradient
-  // This gives the rotating line MEANING — it points toward
-  // the channel with the strongest current deviation
+
+  // Field direction: weighted z-score gradient
   var fx=0,fy=0;
   for(j=0;j<NC;j++){
     var ang=-Math.PI/2+j*PI2/NC;
@@ -986,14 +938,12 @@ function compField(now){
     fy+=zN[j]*Math.sin(ang);
   }
   var targetAngle=Math.atan2(fy,fx);
-  var fieldMag=Math.sqrt(fx*fx+fy*fy);
-  // Smooth rotation
-  var diff=targetAngle-fieldAngle;
-  while(diff>Math.PI)diff-=PI2;
-  while(diff<-Math.PI)diff+=PI2;
-  fieldMomentum=fieldMomentum*0.85+diff*0.15;
+  var diff2=targetAngle-fieldAngle;
+  while(diff2>Math.PI)diff2-=PI2;
+  while(diff2<-Math.PI)diff2+=PI2;
+  fieldMomentum=fieldMomentum*0.85+diff2*0.15;
   fieldAngle+=fieldMomentum;
-  
+
   if(n>=3&&sWarm>25){var prev=hist.D1[n-2],curr=hist.D1[n-1];
     var cr=(prev>0&&curr<=0)||(prev<0&&curr>=0);
     var sal=Math.abs(prev)+Math.abs(curr);
@@ -1017,66 +967,54 @@ function labelPh(){
 }
 
 function interpret(){
-  if(raw[0]<0.05&&raw[3]>0.5)return "Silence \u2014 no signal.";
-  if(raw[0]<0.05)return "Very quiet. Speak up or adjust gain.";
-  if(sWarm<150)return "Building baseline \u2014 keep speaking ("+Math.round(sWarm/1.5)+"%).";
-  if(curSNR<3&&!demo)return "Signal too low (SNR "+curSNR.toFixed(0)+"dB). Move closer.";
+  if(raw[0]<0.03&&raw[3]>0.7)return "Silence \u2014 no signal.";
+  if(raw[0]<0.03)return "Very quiet. Speak up or adjust gain.";
+  if(sWarm<CFG.WARMUP_FRAMES)return "Building baseline \u2014 keep speaking ("+Math.round(sWarm*100/CFG.WARMUP_FRAMES)+"%).";
+  if(curSNR<1&&!demo)return "Low signal (SNR "+curSNR.toFixed(0)+"dB). Move closer or raise gain.";
   var state=STATES[domState],parts=[state.desc];
-  if(covReady&&covInvValid)parts.push("Mah\u00b7\u03A3\u207B\u00B9");
-  else if(covReady)parts.push("Mah\u00b7diag");
-  if(sm[3]>0.5&&sm[0]>0.15)parts.push("Pauses\u2191");
-  if(sm[5]<0.3&&sm[0]>0.15)parts.push("Jitter "+(jitterRel*100).toFixed(1)+"%");
-  if(hnrDb<7&&sm[0]>0.15)parts.push("HNR "+hnrDb.toFixed(0)+"dB");
+  if(covReady)parts.push(covInvValid?"Mah\u00b7\u03A3\u207B\u00B9":"Mah\u00b7diag");
+  if(sm[3]>0.5&&sm[0]>0.1)parts.push("Pauses\u2191");
+  if(isVoiced && jitterRel>0.015)parts.push("Jitter "+(jitterRel*100).toFixed(1)+"%");
+  if(isVoiced && hnrDb<7)parts.push("HNR "+hnrDb.toFixed(0)+"dB");
   if(Math.abs(phaseCoher)>0.3)parts.push("\u03D5="+(phaseCoher>0?"+":"")+phaseCoher.toFixed(2));
-  if(pHz>60&&pConf>0.5){
+  if(pHz>60&&pConf>0.4){
     var nN=['C','C\u266F','D','D\u266F','E','F','F\u266F','G','G\u266F','A','A\u266F','B'];
     var semi=12*Math.log2(pHz/440),note=nN[((Math.round(semi)%12)+12)%12],oct=Math.floor((Math.round(semi)+69)/12);
     parts.push('\u2248'+note+oct+' ('+pHz.toFixed(0)+'Hz)');
   }
-  if(f1Hz>200&&f1Hz<900)parts.push('F1:'+f1Hz.toFixed(0));
+  if(isVoiced && f1Hz>200)parts.push('F1:'+f1Hz.toFixed(0));
   return parts.join(' \u00b7 ')+'.';
 }
 
 // ═══════ DECEPTION PANEL UPDATE ═══════
 function updateDeceptionPanel(){
   var panel=document.getElementById('deception-panel');
-  if(sWarm<300){
-    panel.classList.remove('visible');
-    return;
-  }
+  if(sWarm<CFG.DECEPT_WARMUP){panel.classList.remove('visible');return;}
   panel.classList.add('visible');
-  
   document.getElementById('dp-f0e').textContent=decSub.f0Elev.toFixed(0)+'%';
   document.getElementById('dp-f0e').style.color=decSub.f0Elev>30?'#e07830':'var(--tx2)';
-  
   var jitBar=document.getElementById('dp-jit');
-  jitBar.style.width=decSub.jitSuppress.toFixed(0)+'%';
+  jitBar.style.width=Math.min(100,decSub.jitSuppress).toFixed(0)+'%';
   jitBar.style.background=decSub.jitSuppress>70?'#e07830':'#6bcc8f';
-  
   var shmBar=document.getElementById('dp-shm');
-  shmBar.style.width=decSub.shimCtrl.toFixed(0)+'%';
+  shmBar.style.width=Math.min(100,decSub.shimCtrl).toFixed(0)+'%';
   shmBar.style.background=decSub.shimCtrl>70?'#e07830':'#6bcc8f';
-  
   document.getElementById('dp-hnr').textContent=hnrDb.toFixed(1)+'dB';
   document.getElementById('dp-hnr').style.color=hnrDb<8?'#e07830':'var(--tx2)';
-  
   document.getElementById('dp-pau').textContent=decSub.pausePat.toFixed(0)+'%';
   document.getElementById('dp-pau').style.color=decSub.pausePat>40?'#e8a83c':'var(--tx2)';
-  
   var comp=document.getElementById('dp-comp');
   comp.textContent=decSub.composite;
   comp.style.color=decSub.composite>50?'#cc5555':decSub.composite>25?'#e07830':'#6bcc8f';
-  
-  // Interpretation text
   var interp=document.getElementById('dp-interp');
   if(decSub.composite<10){
-    interp.textContent='No significant arousal-control divergence detected. Speech patterns within normal baseline variance.';
+    interp.textContent='No significant arousal-control divergence. Speech within baseline variance.';
   }else if(decSub.composite<25){
-    interp.textContent='Mild arousal-control pattern. F0 slightly elevated with controlled microperturbation. Could indicate rehearsed speech or mild cognitive effort.';
+    interp.textContent='Mild arousal-control pattern. Slightly elevated F0 with controlled perturbation. May indicate rehearsed speech or mild cognitive effort.';
   }else if(decSub.composite<50){
-    interp.textContent='Moderate arousal-control divergence: pitch elevation ('+decSub.f0Elev.toFixed(0)+'%) with suppressed jitter suggests increased self-monitoring. Consistent with deliberate speech control (Wu 2024, d\u22480.21).';
+    interp.textContent='Moderate divergence: F0 elevation ('+decSub.f0Elev.toFixed(0)+'%) + suppressed jitter suggests self-monitoring. Consistent with deliberate speech control (Wu 2024, d\u22480.21).';
   }else{
-    interp.textContent='Strong arousal-control pattern: elevated F0, suppressed microperturbation, reduced HNR. This acoustic signature is associated with high cognitive load during speech production. Effect size is small (d\u22480.21) — also seen in rehearsed/performative speech.';
+    interp.textContent='Strong arousal-control pattern: elevated F0, suppressed microperturbation, reduced HNR. High cognitive load in speech production. Effect small (d\u22480.21) — also seen in rehearsed speech.';
   }
 }
 
@@ -1093,22 +1031,19 @@ function tick(){
   document.getElementById('phase-name').textContent=ph.n;
   document.getElementById('interp-text').textContent=interpret();
   var snrEl=document.getElementById('snr-badge');
-  if(!demo&&micOn){snrEl.style.display='block';snrEl.textContent='SNR '+curSNR.toFixed(0)+'dB';snrEl.style.color=curSNR<6?'#cc5555':curSNR<12?'#e8a83c':'#6bcc8f';}else snrEl.style.display='none';
-  
-  // Smoothed score display with improved responsiveness
+  if(!demo&&micOn){snrEl.style.display='block';snrEl.textContent='SNR '+curSNR.toFixed(0)+'dB | V:'+dbgVoicedCount+'/'+dbgFrameCount+' BL:'+blPitch.length;snrEl.style.color=curSNR<3?'#cc5555':curSNR<8?'#e8a83c':'#6bcc8f';}else snrEl.style.display='none';
+
+  // Smoothed score display (FIX 8: show numbers even during early warmup)
   dispLoad+=(cogLoad-dispLoad)*SCORE_ALPHA;dispStress+=(stressIdx-dispStress)*SCORE_ALPHA;dispDecept+=(deceptIdx-dispDecept)*SCORE_ALPHA;
   var dL=Math.round(dispLoad),dS=Math.round(dispStress),dD=Math.round(dispDecept);
-  var clEl=document.getElementById('sc-cl');clEl.textContent=sWarm>150?dL:'\u2014';clEl.style.color=dL>60?'#e85d5d':dL>35?'#e8a83c':'#6bbccc';
-  var stEl=document.getElementById('sc-st');stEl.textContent=sWarm>150?dS:'\u2014';stEl.style.color=dS>55?'#e85d5d':dS>30?'#e8a83c':'#cc6b6b';
-  var dcEl=document.getElementById('sc-dc');dcEl.textContent=sWarm>300?dD:'\u2014';dcEl.style.color=dD>50?'#e85d5d':dD>25?'#e07830':'#e0783066';
-  
-  // Update deception interpretation panel
+  var showScores = sWarm >= CFG.WARMUP_FRAMES;
+  var clEl=document.getElementById('sc-cl');clEl.textContent=showScores?dL:'\u2014';clEl.style.color=dL>60?'#e85d5d':dL>35?'#e8a83c':'#6bbccc';
+  var stEl=document.getElementById('sc-st');stEl.textContent=showScores?dS:'\u2014';stEl.style.color=dS>55?'#e85d5d':dS>30?'#e8a83c':'#cc6b6b';
+  var dcEl=document.getElementById('sc-dc');dcEl.textContent=(showScores&&sWarm>CFG.DECEPT_WARMUP)?dD:'\u2014';dcEl.style.color=dD>50?'#e85d5d':dD>25?'#e07830':'#e0783066';
   updateDeceptionPanel();
 }
 
-// ═══════════════════════════════════════════════════
-// VISUALIZATION — Radar + Time Ring + Field Vector
-// ═══════════════════════════════════════════════════
+// ═══════ VISUALIZATION ═══════
 var prevW=0, prevH=0, sizeLocked=false;
 function resize(){
   var a=document.getElementById('atlas-wrap');if(!a)return;
@@ -1129,7 +1064,7 @@ function drawViz(){
   var stClr=STATES[domState].clr;
   var j,ang,val,px,py;
 
-  // TIME RING — each segment shows historical state + intensity
+  // TIME RING
   if(ringHist.length>1){
     var segArc=PI2/RING_MAX,startOff=-Math.PI/2;
     for(j=0;j<ringHist.length;j++){
@@ -1139,8 +1074,6 @@ function drawViz(){
       cx.lineWidth=Math.max(1,ringOuter-ringInner);cx.strokeStyle=STATES[rh.state].clr;
       cx.globalAlpha=Math.max(0.12,Math.min(0.85,intensity*1.2));cx.stroke();
     }cx.globalAlpha=1;
-    
-    // Current position marker on ring
     var curIdx=ringHist.length-1;
     var curAng=startOff+curIdx*segArc;
     var markerR=(ringInner+ringOuter)/2;
@@ -1158,34 +1091,27 @@ function drawViz(){
     cx.beginPath();cx.moveTo(cX,cY);cx.lineTo(cX+radarR*1.08*Math.cos(ang),cY+radarR*1.08*Math.sin(ang));
     cx.strokeStyle=CH[j].clr+'33';cx.lineWidth=1;cx.stroke();}
 
-  // FIELD DIRECTION LINE — shows weighted z-score gradient direction
-  // This line MEANS something: it points toward the acoustic channel
-  // with the strongest current deviation from baseline
-  if(sWarm>30){
+  // FIELD DIRECTION LINE
+  if(sWarm>20){
     var fMag=0;
-    for(j=0;j<NC;j++)fMag+=zN[j]*zN[j];
+    for(j=0;j<NC;j++) fMag+=zN[j]*zN[j];
     fMag=Math.sqrt(fMag)/NC;
     var lineLen=Math.min(radarR*0.95,radarR*0.3+fMag*radarR*0.65);
     var lineAlpha=Math.min(0.6,0.1+fMag*0.5);
-    
-    cx.beginPath();
-    cx.moveTo(cX,cY);
+    cx.beginPath();cx.moveTo(cX,cY);
     cx.lineTo(cX+lineLen*Math.cos(fieldAngle),cY+lineLen*Math.sin(fieldAngle));
     cx.strokeStyle=stClr;cx.globalAlpha=lineAlpha;cx.lineWidth=2;cx.stroke();
-    // Arrow head
     var aLen=8,aAng=0.4;
     var ex=cX+lineLen*Math.cos(fieldAngle),ey=cY+lineLen*Math.sin(fieldAngle);
-    cx.beginPath();
-    cx.moveTo(ex,ey);
+    cx.beginPath();cx.moveTo(ex,ey);
     cx.lineTo(ex-aLen*Math.cos(fieldAngle-aAng),ey-aLen*Math.sin(fieldAngle-aAng));
     cx.moveTo(ex,ey);
     cx.lineTo(ex-aLen*Math.cos(fieldAngle+aAng),ey-aLen*Math.sin(fieldAngle+aAng));
-    cx.stroke();
-    cx.globalAlpha=1;
+    cx.stroke();cx.globalAlpha=1;
   }
 
-  // BASELINE POLYGON (dashed)
-  if(sWarm>30){cx.beginPath();
+  // BASELINE POLYGON
+  if(sWarm>20){cx.beginPath();
     for(j=0;j<NC;j++){var bR=Math.max(2,rMu[j]*radarR);px=cX+bR*Math.cos(angles[j]);py=cY+bR*Math.sin(angles[j]);
       if(j===0)cx.moveTo(px,py);else cx.lineTo(px,py);}
     cx.closePath();cx.strokeStyle='rgba(255,255,255,0.12)';cx.lineWidth=1;cx.setLineDash([3,3]);cx.stroke();cx.setLineDash([]);}
@@ -1216,8 +1142,7 @@ function drawViz(){
     cx.font='500 '+(isMobile?8:10)+'px "JetBrains Mono"';cx.fillStyle=pcClr+'88';
     cx.fillText('\u03D5'+phaseCoher.toFixed(2),cX,cY+32);
   }
-  if(covReady&&covInvValid){cx.font='500 '+(isMobile?7:9)+'px "DM Sans"';cx.fillStyle='#d4a85566';cx.fillText('MAH \u03A3\u207B\u00B9',cX,cY+42);}
-  else if(covReady){cx.font='500 '+(isMobile?7:9)+'px "DM Sans"';cx.fillStyle='#d4a85544';cx.fillText('MAH diag',cX,cY+42);}
+  if(covReady){cx.font='500 '+(isMobile?7:9)+'px "DM Sans"';cx.fillStyle='#d4a85566';cx.fillText(covInvValid?'MAH \u03A3\u207B\u00B9':'MAH diag',cX,cY+42);}
 
   // EVENT MARKS
   for(j=0;j<eventMarks.length;j++){var em=eventMarks[j];var tNow=(performance.now()-sessT)/1000,tAgo=tNow-em.t,framesAgo=tAgo*CFG.AHZ;
@@ -1225,7 +1150,7 @@ function drawViz(){
       if(markIdx>=0){var mAng=-Math.PI/2+markIdx*PI2/RING_MAX,mR=(ringInner+ringOuter)/2;
         cx.beginPath();cx.arc(cX+mR*Math.cos(mAng),cY+mR*Math.sin(mAng),4,0,PI2);cx.fillStyle='#d4a855';cx.fill();cx.strokeStyle='#000';cx.lineWidth=1;cx.stroke();}}}
 
-  // VOLUME PULSE — subtle breathing circle
+  // VOLUME PULSE
   var pulseR=radarR*(1+vVol*0.08);cx.beginPath();cx.arc(cX,cY,Math.max(1,pulseR),0,PI2);
   cx.strokeStyle=stClr+toHex2((vVol*0.4+0.05)*255);cx.lineWidth=1.5;cx.stroke();
 }
@@ -1279,40 +1204,37 @@ function genReport(){
   for(j=0;j<6;j++){var pct=dur>0?(stTime[j]/dur*100):0;var bw=Math.max(2,stTime[j]/maxSt*100);
     html+='<div class="bar" style="width:'+bw+'%;background:'+STATES[j].clr+'">'+STATES[j].name+' '+pct.toFixed(0)+'%</div>';}
   html+='<h2>Channel Averages</h2><table><tr><th>Channel</th><th>Method</th><th>Avg</th></tr>';
-  var methods=['RMS\u2192dBFS (Titze 1994)','YIN F0 + median filter (de Cheveign\u00e9 2002)','Syllable peaks (de Jong 2009)','Silence ratio (Goldman-Eisler 1968)','Spectral centroid @ 5.86Hz/bin (zero-phase FFT)','1\u2212Relative jitter (Teixeira 2013)','Spectral HNR @ 5.86Hz/bin (harmonic peak-picking)','1\u2212Shimmer dB (Teixeira 2013)'];
+  var methods=['RMS\u2192dBFS (Titze 1994)','YIN F0 + median filter (de Cheveign\u00e9 2002)','Syllable peaks (de Jong 2009)','Silence ratio (Goldman-Eisler 1968)','Spectral centroid (zero-phase FFT)','1\u2212Relative jitter (Teixeira 2013)','Spectral HNR (harmonic peak-picking)','1\u2212Shimmer dB (Teixeira 2013)'];
   for(j=0;j<NC;j++){var pctC=Math.round(chAvg[j]*100);
     html+='<tr><td style="color:'+CH[j].clr+'">'+CH[j].name+'</td><td style="color:#6b6560;font-size:11px">'+methods[j]+'</td><td>'+pctC+'%</td></tr>';}html+='</table>';
   html+=markHtml;
   html+='<h2>DSP Pipeline</h2><table>';
-  html+='<tr><td>AGC</td><td>DynamicsCompressor (-24dB, 8:1, 3ms attack)</td></tr>';
-  html+='<tr><td>Window</td><td>Hanning 2048 samples, zero-phase circular shift</td></tr>';
-  html+='<tr><td>FFT</td><td>Radix-2, zero-padded 2048\u21928192 (5.86 Hz/bin), zero-phase</td></tr>';
-  html+='<tr><td>Pre-emphasis</td><td>s\'[n] = s[n] \u2212 0.97\u00b7s[n\u22121] (glottal tilt removal)</td></tr>';
-  html+='<tr><td>Pitch</td><td>YIN + 5-frame median filter (octave-jump rejection)</td></tr>';
-  html+='<tr><td>Formants</td><td>Pre-emphasized LPC(12) Levinson-Durbin \u2192 spectral peak-picking</td></tr>';
-  html+='<tr><td>HNR</td><td>Harmonic peak vs inter-harmonic valley (high-res FFT)</td></tr>';
-  html+='<tr><td>Phase</td><td>F0\u2194H1 phase coherence (zero-phase ARS integration)</td></tr>';
-  html+='<tr><td>VAD</td><td>HNR-gated: energy + pitch conf + HNR > 0dB (rejects fricatives/noise)</td></tr>';
-  html+='<tr><td>Baseline</td><td>30-second HNR-gated sliding window (vowels only)</td></tr>';
-  html+='<tr><td>Classification</td><td>'+(covInvValid?'True Mahalanobis (Cholesky \u03A3\u207B\u00B9) projection onto literature-derived prototypes':(covReady?'Diagonal Mahalanobis z-score projection (pre-inverse warmup)':'Absolute+relative thresholds (pre-Mahalanobis warmup)'))+'</td></tr>';
+  html+='<tr><td>AGC</td><td>DynamicsCompressor (-24dB, 8:1, 3ms)</td></tr>';
+  html+='<tr><td>Window</td><td>Hanning 2048, zero-phase circular shift</td></tr>';
+  html+='<tr><td>FFT</td><td>Radix-2, zero-padded 2048\u21928192 (5.86 Hz/bin)</td></tr>';
+  html+='<tr><td>Pre-emphasis</td><td>s\'[n] = s[n] \u2212 0.97s[n\u22121]</td></tr>';
+  html+='<tr><td>Pitch</td><td>YIN + 5-frame median filter</td></tr>';
+  html+='<tr><td>Formants</td><td>Pre-emphasized LPC(12) \u2192 spectral peak-picking</td></tr>';
+  html+='<tr><td>HNR</td><td>Harmonic vs inter-harmonic valley (high-res FFT)</td></tr>';
+  html+='<tr><td>Phase</td><td>F0\u2194H1 phase coherence (zero-phase ARS)</td></tr>';
+  html+='<tr><td>VAD</td><td>Two-tier: energy+pitch (baseline), +HNR>0dB (covariance)</td></tr>';
+  html+='<tr><td>Classification</td><td>'+(covInvValid?'True Mahalanobis (Cholesky \u03A3\u207B\u00B9)':'Heuristic weighted scoring')+' \u2192 state prototypes</td></tr>';
   html+='</table>';
-  html+='<h2>Deception Analysis Model</h2>';
-  html+='<table><tr><th>Marker</th><th>Mechanism</th><th>Reference</th></tr>';
-  html+='<tr><td style="color:#e07830">F0 Elevation</td><td>Sympathetic nervous system arousal increases cricothyroid tension</td><td>Scherer 2003, Ekman 1991</td></tr>';
-  html+='<tr><td style="color:#e07830">Jitter Suppression</td><td>Increased self-monitoring reduces normal laryngeal microperturbation</td><td>Wu 2024, Teixeira 2013</td></tr>';
-  html+='<tr><td style="color:#e07830">Shimmer Control</td><td>Controlled subglottal pressure stabilizes amplitude perturbation</td><td>Teixeira 2013</td></tr>';
-  html+='<tr><td style="color:#e07830">HNR Decrease</td><td>Vocal effort with tension increases turbulent airflow</td><td>Titze 1994</td></tr>';
-  html+='<tr><td style="color:#e07830">Pause Patterns</td><td>Increased cognitive load from dual-task (fabrication + monitoring)</td><td>Goldman-Eisler 1968, DePaulo 2003</td></tr>';
-  html+='</table>';
+  html+='<h2>Deception Model</h2><table><tr><th>Marker</th><th>Mechanism</th><th>Reference</th></tr>';
+  html+='<tr><td style="color:#e07830">F0 Elevation</td><td>SNS arousal \u2192 cricothyroid tension</td><td>Scherer 2003</td></tr>';
+  html+='<tr><td style="color:#e07830">Jitter Suppression</td><td>Self-monitoring reduces laryngeal microperturbation</td><td>Wu 2024</td></tr>';
+  html+='<tr><td style="color:#e07830">Shimmer Control</td><td>Controlled subglottal pressure stabilizes amplitude</td><td>Teixeira 2013</td></tr>';
+  html+='<tr><td style="color:#e07830">HNR Decrease</td><td>Vocal effort + tension \u2192 turbulent airflow</td><td>Titze 1994</td></tr>';
+  html+='<tr><td style="color:#e07830">Pause Patterns</td><td>Dual-task cognitive load (fabrication + monitoring)</td><td>DePaulo 2003</td></tr></table>';
   html+='<h2>Scientific Basis</h2><table><tr><th>State</th><th>Markers</th><th>References</th></tr>';
-  html+='<tr><td style="color:#6bcc8f">Focused</td><td>Low jitter, high HNR, phase-locked harmonics, stable F0</td><td>Titze 1994</td></tr>';
-  html+='<tr><td style="color:#cc5555">Stressed</td><td>F0\u2191 intensity\u2191 rate\u2191 jitter\u2191 F1\u2191</td><td>Scherer 2003, Protopapas 1997</td></tr>';
-  html+='<tr><td style="color:#e8a83c">Processing</td><td>F0 CV\u2191 pauses\u2191 rate\u2193 F1\u2191</td><td>Lively 1993, Goldman-Eisler 1968</td></tr>';
-  html+='<tr><td style="color:#7a7aaa">Fatigued</td><td>Intensity\u2193 F0\u2193 rate\u2193 monotone HNR\u2193</td><td>Kreiman & Sidtis 2011</td></tr>';
+  html+='<tr><td style="color:#6bcc8f">Focused</td><td>Low jitter, high HNR, phase-locked, stable F0</td><td>Titze 1994</td></tr>';
+  html+='<tr><td style="color:#cc5555">Stressed</td><td>F0\u2191 intensity\u2191 rate\u2191 jitter\u2191 F1\u2191</td><td>Scherer 2003</td></tr>';
+  html+='<tr><td style="color:#e8a83c">Processing</td><td>F0 CV\u2191 pauses\u2191 rate\u2193</td><td>Goldman-Eisler 1968</td></tr>';
+  html+='<tr><td style="color:#7a7aaa">Fatigued</td><td>Intensity\u2193 F0\u2193 rate\u2193 HNR\u2193</td><td>Kreiman 2011</td></tr>';
   html+='<tr><td style="color:#cc6b9b">Guarded</td><td>Compressed F0, pauses, high stability</td><td>DePaulo 2003</td></tr>';
-  html+='<tr><td style="color:#e07830">Deceptive</td><td>F0\u2191 intensity\u2191 jitter\u2193 shimmer\u2193 HNR\u2193</td><td>Wu 2024, DePaulo 2003</td></tr></table>';
-  html+='<div class="warn"><strong>Deception Indicator:</strong> Measures an acoustic arousal-control divergence pattern at small effect sizes (d\u22480.21, Wu 2024 meta-analysis). This pattern is also triggered by rehearsed speech, performance anxiety, and deliberate speech control. It is NOT a lie detector. The arousal-control model posits that deception requires simultaneous physiological arousal (elevated F0, loudness) and behavioral control (suppressed jitter, shimmer), creating a measurable but non-specific acoustic signature.</div>';
-  html+='<div class="note"><strong>Disclaimer:</strong> CHORUS is an acoustic analysis tool, not diagnostic. Classification uses '+(covInvValid?'true Mahalanobis distance (Cholesky \u03A3\u207B\u00B9)':'z-score')+' projection onto literature-derived state prototypes. Within-session baseline only. Not for forensic, legal, or medical use.</div>';
+  html+='<tr><td style="color:#e07830">Deceptive</td><td>F0\u2191 jitter\u2193 shimmer\u2193 HNR\u2193</td><td>Wu 2024</td></tr></table>';
+  html+='<div class="warn"><strong>Deception Indicator:</strong> Measures arousal-control divergence at small effect sizes (d\u22480.21). Also triggered by rehearsed speech. NOT a lie detector.</div>';
+  html+='<div class="note"><strong>Disclaimer:</strong> CHORUS is an acoustic analysis tool, not diagnostic. Within-session baseline only. Not for forensic, legal, or medical use.</div>';
   html+='</body></html>';
   var blob=new Blob([html],{type:'text/html'}),url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;var dt=new Date();
   a.download='CHORUS_Report_'+dt.getFullYear()+pad2(dt.getMonth()+1)+pad2(dt.getDate())+'_'+pad2(dt.getHours())+pad2(dt.getMinutes())+'.html';
