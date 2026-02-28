@@ -199,7 +199,7 @@ var CFG = {
   FFT: 2048, AHZ: 30, SMOOTH: 0.04, NTAU: 3,
   PH_MIN: 3, PH_SAL: 0.28, DEG_S: 8, MAX: 9000,
   WIPE_DEG: 35, DEBOUNCE: 12,
-  DOM_HZ: 10  // throttle DOM text updates to 10Hz
+  DOM_HZ: 5  // throttle DOM text updates to 5Hz for readability
 };
 
 var CH = [
@@ -262,6 +262,8 @@ var JBUF = 15;
 
 // Scores + state
 var cogLoad = 0, stressIdx = 0, fatigueIdx = 0, guardedIdx = 0, focusIdx = 0;
+var dispLoad = 0, dispStress = 0; // smoothed display values — glide, don't jump
+var SCORE_ALPHA = 0.08; // slow tracking for readable numbers
 var domState = 6;
 var pendState = 6, pendCount = 0;
 
@@ -917,13 +919,17 @@ function tick() {
   // Interpretation
   document.getElementById('interp-text').textContent = interpret();
 
-  // Scores
+  // Scores — smooth toward actual values for readability
+  dispLoad += (cogLoad - dispLoad) * SCORE_ALPHA;
+  dispStress += (stressIdx - dispStress) * SCORE_ALPHA;
+  var dL = Math.round(dispLoad);
+  var dS = Math.round(dispStress);
   var clEl = document.getElementById('sc-cl');
-  clEl.textContent = sWarm > 25 ? cogLoad : '\u2014';
-  clEl.style.color = cogLoad > 60 ? '#e85d5d' : cogLoad > 35 ? '#e8a83c' : '#6bbccc';
+  clEl.textContent = sWarm > 25 ? dL : '\u2014';
+  clEl.style.color = dL > 60 ? '#e85d5d' : dL > 35 ? '#e8a83c' : '#6bbccc';
   var stEl = document.getElementById('sc-st');
-  stEl.textContent = sWarm > 25 ? stressIdx : '\u2014';
-  stEl.style.color = stressIdx > 55 ? '#e85d5d' : stressIdx > 30 ? '#e8a83c' : '#cc6b6b';
+  stEl.textContent = sWarm > 25 ? dS : '\u2014';
+  stEl.style.color = dS > 55 ? '#e85d5d' : dS > 30 ? '#e8a83c' : '#cc6b6b';
 
   // Metrics — use smoothed values
   for (var j = 0; j < NC; j++) {
