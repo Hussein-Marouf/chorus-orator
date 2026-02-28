@@ -43,7 +43,7 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'DM Sans',sans
 #cal-fill{height:100%;width:0;background:var(--green);border-radius:3px;transition:width .12s}
 #cal-st{font-size:11px;color:var(--tx3)}
 
-/* ═══ APP ═══ */
+/* ═══ APP — all bottom bars are FIXED HEIGHT to prevent atlas resize ═══ */
 #app{position:fixed;inset:0;z-index:10;display:none;flex-direction:column}
 #app.on{display:flex}
 
@@ -71,9 +71,9 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'DM Sans',sans
 .hbtn-rpt{border-color:var(--violet);color:var(--violet);background:rgba(155,127,212,0.05)}
 .hbtn-rpt:hover{background:rgba(155,127,212,0.12)}
 
-/* Atlas */
-#atlas-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
-canvas#cv{position:absolute;inset:0;width:100%;height:100%}
+/* Atlas — uses contain to isolate from layout changes */
+#atlas-wrap{flex:1;position:relative;overflow:hidden;min-height:0;contain:strict}
+canvas#cv{position:absolute;top:0;left:0}
 
 /* 12 o'clock status label */
 #status-lbl{
@@ -82,16 +82,22 @@ canvas#cv{position:absolute;inset:0;width:100%;height:100%}
   padding:3px 18px;border-radius:20px;
   background:rgba(8,9,15,0.75);backdrop-filter:blur(6px);
   border:1px solid rgba(212,168,85,0.25);color:var(--gold);
-  pointer-events:none;transition:all .4s;white-space:nowrap;
+  pointer-events:none;transition:color .4s, border-color .4s;white-space:nowrap;
 }
 
-/* Interpretation bar */
-#interp{flex-shrink:0;display:flex;align-items:stretch;background:rgba(10,12,20,0.95);border-top:1px solid rgba(255,255,255,0.05)}
-#interp-main{flex:1;padding:8px 16px;min-width:0;display:flex;flex-direction:column;justify-content:center}
-#phase-row{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+/* ═══ FIXED HEIGHT interpretation bar — never changes height ═══ */
+#interp{
+  flex-shrink:0;flex-grow:0;
+  height:72px;
+  display:flex;align-items:stretch;
+  background:rgba(10,12,20,0.95);border-top:1px solid rgba(255,255,255,0.05);
+  overflow:hidden;
+}
+#interp-main{flex:1;padding:6px 16px;min-width:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+#phase-row{display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-shrink:0}
 #phase-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-#phase-name{font-family:'Syne';font-size:14px;font-weight:700;letter-spacing:.05em}
-#interp-text{font-size:15px;color:var(--tx);line-height:1.35}
+#phase-name{font-family:'Syne';font-size:13px;font-weight:700;letter-spacing:.05em}
+#interp-text{font-size:14px;color:var(--tx);line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 
 /* Score gauges */
 #scores{display:flex;gap:1px;flex-shrink:0;border-left:1px solid rgba(255,255,255,0.04)}
@@ -100,13 +106,14 @@ canvas#cv{position:absolute;inset:0;width:100%;height:100%}
 .sc-val{font-family:'JetBrains Mono';font-size:24px;font-weight:600;line-height:1}
 .sc-unit{font-size:8px;color:var(--tx3);margin-top:2px}
 
-/* METRICS BAR */
+/* ═══ FIXED HEIGHT metrics bar ═══ */
 #metrics{
-  flex-shrink:0;height:54px;
+  flex-shrink:0;flex-grow:0;
+  height:54px;
   display:flex;align-items:center;justify-content:center;
   gap:6px;padding:0 10px;
   background:rgba(8,9,15,0.92);border-top:1px solid rgba(255,255,255,0.04);
-  overflow-x:auto;
+  overflow-x:auto;overflow-y:hidden;
 }
 .met{
   display:flex;align-items:center;gap:6px;
@@ -120,11 +127,13 @@ canvas#cv{position:absolute;inset:0;width:100%;height:100%}
 
 @media(max-width:600px){
   .gw{display:none}
-  #interp-text{font-size:13px}
-  .sc{width:64px}.sc-val{font-size:18px}
-  #metrics{gap:4px;height:46px}
-  .met{padding:4px 6px}
-  .met-nm{font-size:11px}.met-v{font-size:14px}
+  #interp{height:64px}
+  #interp-text{font-size:12px}
+  .sc{width:60px}.sc-val{font-size:18px}
+  #metrics{gap:3px;height:44px}
+  .met{padding:3px 5px;gap:4px}
+  .met-nm{font-size:10px}.met-v{font-size:13px}
+  .met-d{width:8px;height:8px}
   #status-lbl{font-size:14px}
   .hbtn{font-size:9px;padding:2px 7px}
 }
@@ -142,12 +151,12 @@ canvas#cv{position:absolute;inset:0;width:100%;height:100%}
     <strong>Record</strong> your session audio and <strong>generate a report</strong> when finished.
   </div>
   <button class="sb-go" onclick="go()">Begin</button>
-  <div class="sb-note">Mic required · Local only · Not a diagnostic or forensic tool</div>
+  <div class="sb-note">Mic required &middot; Local only &middot; Not a diagnostic or forensic tool</div>
 </div>
 </div>
 
 <div id="mic-ov"><div class="ov-box"><div class="ov-t">Microphone</div><div class="ov-sub">All analysis runs locally. Nothing recorded unless you press Record.</div><button class="ov-btn ov-allow" onclick="reqMic()">Allow Microphone</button><button class="ov-btn ov-demo" onclick="goDemo()">Demo Mode</button></div></div>
-<div id="cal-ov"><div class="ov-box"><div class="cal-t">Calibrating…</div><div class="cal-text">Stay quiet for 2 seconds.<br>Learning your room's noise floor.</div><div id="cal-bar"><div id="cal-fill"></div></div><div id="cal-st">Listening…</div></div></div>
+<div id="cal-ov"><div class="ov-box"><div class="cal-t">Calibrating&hellip;</div><div class="cal-text">Stay quiet for 2 seconds.<br>Learning your room's noise floor.</div><div id="cal-bar"><div id="cal-fill"></div></div><div id="cal-st">Listening&hellip;</div></div></div>
 
 <div id="app">
   <header id="hdr">
@@ -171,7 +180,7 @@ canvas#cv{position:absolute;inset:0;width:100%;height:100%}
   <div id="interp">
     <div id="interp-main">
       <div id="phase-row"><div id="phase-dot"></div><div id="phase-name">Ready</div></div>
-      <div id="interp-text">Waiting for sound…</div>
+      <div id="interp-text">Waiting for sound&hellip;</div>
     </div>
     <div id="scores">
       <div class="sc"><div class="sc-lbl" style="color:var(--teal)">Load</div><div class="sc-val" id="sc-cl" style="color:var(--teal)">&mdash;</div><div class="sc-unit">cogn</div></div>
@@ -189,7 +198,8 @@ var NC = 8;
 var CFG = {
   FFT: 2048, AHZ: 30, SMOOTH: 0.04, NTAU: 3,
   PH_MIN: 3, PH_SAL: 0.28, DEG_S: 8, MAX: 9000,
-  WIPE_DEG: 35, DEBOUNCE: 12 // frames state must hold before switching
+  WIPE_DEG: 35, DEBOUNCE: 12,
+  DOM_HZ: 10  // throttle DOM text updates to 10Hz
 };
 
 var CH = [
@@ -209,13 +219,12 @@ var PHASES = [
   {n:'Peak',c:'#cc5555'}, {n:'Landing',c:'#5575aa'}
 ];
 
-// Cognitive states — LOADED renamed to PROCESSING
 var STATES = [
-  {name:'FOCUSED',     clr:'#6bcc8f', desc:'Clear, steady delivery \u2014 low cognitive load, stable voice, good clarity'},
-  {name:'STRESSED',    clr:'#cc5555', desc:'Elevated pitch and intensity above your baseline \u2014 physiological arousal detected'},
-  {name:'PROCESSING',  clr:'#e8a83c', desc:'High mental effort \u2014 pitch variance up, rate down, more pauses, reduced fluency'},
-  {name:'FATIGUED',    clr:'#7a7aaa', desc:'Low energy \u2014 reduced intensity, pitch, and rate with diminished vocal dynamics'},
-  {name:'GUARDED',     clr:'#cc6b9b', desc:'Information management pattern \u2014 elevated pitch with increased pauses and reduced clarity'},
+  {name:'FOCUSED',     clr:'#6bcc8f', desc:'Clear, steady delivery \u2014 low load, stable voice, good clarity'},
+  {name:'STRESSED',    clr:'#cc5555', desc:'Elevated pitch and intensity above baseline \u2014 physiological arousal'},
+  {name:'PROCESSING',  clr:'#e8a83c', desc:'High mental effort \u2014 pitch unstable, rate down, pauses up'},
+  {name:'FATIGUED',    clr:'#7a7aaa', desc:'Low energy \u2014 reduced intensity, pitch, rate, vocal dynamics'},
+  {name:'GUARDED',     clr:'#cc6b9b', desc:'Information management \u2014 elevated pitch, more pauses, less clarity'},
   {name:'SILENCE',     clr:'#555555', desc:'No vocal signal above noise floor'},
   {name:'CALIBRATING', clr:'#d4a855', desc:'Building your personal baseline \u2014 keep speaking naturally'}
 ];
@@ -227,11 +236,15 @@ var actx = null, an = null, gNode = null, micStr = null;
 var fF = null, fT = null;
 var nFloor = 0.003, nFloorDb = -50;
 
-var raw = new Float32Array(NC);
+var raw = new Float32Array(NC);   // instantaneous
+var sm = new Float32Array(NC);    // smoothed for display
 var zN = new Float32Array(NC);
 var rMu = new Float32Array(NC);
-var rVar = new Float32Array(NC); for(var _=0;_<NC;_++)rVar[_]=0.01;
+var rVar = new Float32Array(NC);
+var i;
+for (i = 0; i < NC; i++) rVar[i] = 0.01;
 var sWarm = 0;
+var SM_ALPHA = 0.25; // EMA smoothing for raw → sm
 
 var hist = {S:[], D1:[], D2:[], t:[], ch:[]};
 var cPh = 0, lastBT = 0;
@@ -247,21 +260,25 @@ var JBUF = 15;
 
 // Scores + state
 var cogLoad = 0, stressIdx = 0, fatigueIdx = 0, guardedIdx = 0, focusIdx = 0;
-var domState = 6; // CALIBRATING
-var pendState = 6, pendCount = 0; // debounce
+var domState = 6;
+var pendState = 6, pendCount = 0;
 
 // State history for report
-var stateLog = []; // {t, state, cl, st, fi, gi, fo}
-var peakLoad = 0, peakStress = 0;
+var stateLog = [];
+var peakLoad = 0, peakStress = 0, peakFatigue = 0, peakGuarded = 0;
 
 // Recording
 var mediaRec = null, recChunks = [], isRec = false;
 
-// Atlas data
+// Atlas
 var aD = [], pB = [];
 var cv = document.getElementById('cv');
 var cx = cv.getContext('2d');
-var W = 2, H = 2;
+var W = 2, H = 2, DPR = 1;
+
+// DOM update throttle
+var lastDomUpdate = 0;
+var DOM_INTERVAL = 1000 / CFG.DOM_HZ;
 
 // ═══════ SETUP ═══════
 function go() {
@@ -275,7 +292,6 @@ function go() {
 async function reqMic() {
   try {
     actx = new (window.AudioContext || window.webkitAudioContext)();
-    // iOS requires explicit resume within user gesture
     if (actx.state === 'suspended') { await actx.resume(); }
     sr = actx.sampleRate;
     micStr = await navigator.mediaDevices.getUserMedia({
@@ -311,7 +327,7 @@ function calibrate() {
     if (!an) return;
     an.getFloatTimeDomainData(tempFT);
     var sq = 0;
-    for (var i = 0; i < tempFT.length; i++) sq += tempFT[i] * tempFT[i];
+    for (var j = 0; j < tempFT.length; j++) sq += tempFT[j] * tempFT[j];
     smp.push(Math.sqrt(sq / tempFT.length));
     fr++;
     document.getElementById('cal-fill').style.width = (fr / tot * 100 | 0) + '%';
@@ -322,7 +338,7 @@ function calibrate() {
       nFloor = smp[Math.floor(smp.length * 0.95)] * 1.5;
       nFloorDb = nFloor > 1e-10 ? 20 * Math.log10(nFloor) : -60;
       var nN = Math.max(0, (nFloorDb + 72) / 72) * 0.3;
-      for (var j = 0; j < NC; j++) { rMu[j] = nN; rVar[j] = 0.02; }
+      for (var k = 0; k < NC; k++) { rMu[k] = nN; rVar[k] = 0.02; }
       setTimeout(function() {
         document.getElementById('cal-ov').classList.remove('show');
         startSess();
@@ -335,7 +351,7 @@ function startSess() {
   document.getElementById('app').classList.add('on');
   sessOn = true; sessT = performance.now();
   updateMUI(); buildMetrics();
-  setTimeout(function() { resize(); requestAnimationFrame(render); }, 50);
+  setTimeout(function() { resize(); requestAnimationFrame(render); }, 80);
   setInterval(tick, 1000 / CFG.AHZ);
 }
 
@@ -370,12 +386,12 @@ gsl.dispatchEvent(new Event('input'));
 
 function buildMetrics() {
   var el = document.getElementById('metrics'); el.innerHTML = '';
-  for (var i = 0; i < NC; i++) {
-    var c = CH[i];
+  for (var j = 0; j < NC; j++) {
+    var c = CH[j];
     var d = document.createElement('div'); d.className = 'met';
     d.innerHTML = '<div class="met-d" style="background:' + c.clr + '"></div>' +
       '<span class="met-nm">' + c.name + '</span>' +
-      '<span class="met-v" id="mv-' + i + '" style="color:' + c.clr + '">\u2014</span>';
+      '<span class="met-v" id="mv-' + j + '" style="color:' + c.clr + '">\u2014</span>';
     el.appendChild(d);
   }
 }
@@ -389,15 +405,25 @@ function startRec() {
   if (!micStr) { alert('Recording requires a live microphone.'); return; }
   try {
     recChunks = [];
-    mediaRec = new MediaRecorder(micStr, {mimeType: 'audio/webm;codecs=opus'});
+    // Try multiple mimeTypes for iOS/Safari compatibility
+    var types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/aac', ''];
+    var mimeType = '';
+    for (var j = 0; j < types.length; j++) {
+      if (types[j] === '' || MediaRecorder.isTypeSupported(types[j])) {
+        mimeType = types[j]; break;
+      }
+    }
+    var opts = mimeType ? {mimeType: mimeType} : {};
+    mediaRec = new MediaRecorder(micStr, opts);
     mediaRec.ondataavailable = function(e) { if (e.data.size > 0) recChunks.push(e.data); };
     mediaRec.onstop = function() {
-      var blob = new Blob(recChunks, {type: 'audio/webm'});
+      var blob = new Blob(recChunks, {type: mediaRec.mimeType || 'audio/webm'});
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url;
-      var d = new Date();
-      a.download = 'CHORUS_' + d.getFullYear() + pad2(d.getMonth()+1) + pad2(d.getDate()) + '_' + pad2(d.getHours()) + pad2(d.getMinutes()) + '.webm';
+      var ext = (mediaRec.mimeType || '').indexOf('mp4') >= 0 ? '.m4a' : '.webm';
+      var dt = new Date();
+      a.download = 'CHORUS_' + dt.getFullYear() + pad2(dt.getMonth()+1) + pad2(dt.getDate()) + '_' + pad2(dt.getHours()) + pad2(dt.getMinutes()) + ext;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     };
@@ -412,9 +438,7 @@ function startRec() {
 }
 
 function stopRec() {
-  if (mediaRec && mediaRec.state !== 'inactive') {
-    mediaRec.stop();
-  }
+  if (mediaRec && mediaRec.state !== 'inactive') { mediaRec.stop(); }
   isRec = false;
   document.getElementById('rec-b').classList.remove('on');
   document.getElementById('rec-b').innerHTML = '&#9679; Rec';
@@ -422,11 +446,10 @@ function stopRec() {
 
 function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 
-// ═══════ REPORT GENERATION ═══════
+// ═══════ REPORT ═══════
 function genReport() {
   if (stateLog.length < 2) { alert('Speak for at least 10 seconds first.'); return; }
 
-  // Snapshot the atlas
   var snap = '';
   try { snap = cv.toDataURL('image/png'); } catch(e) { snap = ''; }
 
@@ -434,42 +457,37 @@ function genReport() {
   var durMin = Math.floor(dur / 60);
   var durSec = Math.floor(dur % 60);
 
-  // State time distribution
   var stTime = [0, 0, 0, 0, 0, 0, 0];
   var interval = dur / stateLog.length;
-  for (var i = 0; i < stateLog.length; i++) {
-    var si = stateLog[i].state;
+  for (var j = 0; j < stateLog.length; j++) {
+    var si = stateLog[j].state;
     if (si >= 0 && si < 7) stTime[si] += interval;
   }
 
-  // Channel averages
   var chAvg = [0, 0, 0, 0, 0, 0, 0, 0];
   var chCount = 0;
-  for (i = 0; i < hist.ch.length; i++) {
-    for (var ci = 0; ci < NC; ci++) chAvg[ci] += hist.ch[i][ci];
+  for (j = 0; j < hist.ch.length; j++) {
+    for (var ci = 0; ci < NC; ci++) chAvg[ci] += hist.ch[j][ci];
     chCount++;
   }
   if (chCount > 0) { for (ci = 0; ci < NC; ci++) chAvg[ci] /= chCount; }
 
-  // Phase events
   var phaseList = '';
-  for (i = 0; i < pB.length; i++) {
-    var pb = pB[i];
+  for (j = 0; j < pB.length; j++) {
+    var pb = pB[j];
     var pMin = Math.floor(pb.t / 60);
     var pSec = Math.floor(pb.t % 60);
     phaseList += '<tr><td>' + pad2(pMin) + ':' + pad2(pSec) + '</td><td style="color:' + PHASES[pb.ph].c + '">' + PHASES[pb.ph].n + '</td></tr>';
   }
 
-  // State timeline — sample every ~2 seconds
   var tlHtml = '';
   var step = Math.max(1, Math.floor(stateLog.length / 120));
-  for (i = 0; i < stateLog.length; i += step) {
-    var sl = stateLog[i];
+  for (j = 0; j < stateLog.length; j += step) {
+    var sl = stateLog[j];
     var sc = STATES[sl.state] || STATES[6];
     tlHtml += '<div style="flex:1;min-width:2px;height:20px;background:' + sc.clr + '" title="' + pad2(Math.floor(sl.t/60)) + ':' + pad2(Math.floor(sl.t%60)) + ' ' + sc.name + '"></div>';
   }
 
-  // Build HTML report
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CHORUS Report</title>';
   html += '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0b12;color:#e2ddd2;font-family:system-ui,-apple-system,sans-serif;padding:40px;max-width:900px;margin:0 auto}';
   html += 'h1{font-size:28px;font-weight:800;margin-bottom:4px;color:#d4a855}h2{font-size:18px;font-weight:700;margin:32px 0 12px;color:#d4a855;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:6px}';
@@ -489,93 +507,87 @@ function genReport() {
   html += '<h1>CHORUS Orator \u2014 Session Report</h1>';
   html += '<div class="sub">Generated ' + new Date().toLocaleString() + ' \u00b7 Duration: ' + pad2(durMin) + ':' + pad2(durSec) + ' \u00b7 Mode: ' + (demo ? 'Demo' : 'Live Mic') + '</div>';
 
-  // Atlas snapshot
   if (snap) {
     html += '<h2>Atlas Snapshot</h2>';
     html += '<img class="snap" src="' + snap + '" alt="Session Atlas">';
   }
 
-  // Summary cards
   html += '<h2>Session Summary</h2><div class="grid">';
-  html += '<div class="card"><div class="card-lbl" style="color:#6bbccc">Peak Cognitive Load</div><div class="card-val" style="color:#6bbccc">' + peakLoad + '</div><div class="card-note">Max mental effort detected during session</div></div>';
-  html += '<div class="card"><div class="card-lbl" style="color:#cc6b6b">Peak Stress</div><div class="card-val" style="color:#cc6b6b">' + peakStress + '</div><div class="card-note">Max physiological arousal detected</div></div>';
+  html += '<div class="card"><div class="card-lbl" style="color:#6bbccc">Peak Cognitive Load</div><div class="card-val" style="color:#6bbccc">' + peakLoad + '</div><div class="card-note">Max mental effort detected</div></div>';
+  html += '<div class="card"><div class="card-lbl" style="color:#cc6b6b">Peak Stress</div><div class="card-val" style="color:#cc6b6b">' + peakStress + '</div><div class="card-note">Max physiological arousal</div></div>';
+  html += '<div class="card"><div class="card-lbl" style="color:#7a7aaa">Peak Fatigue</div><div class="card-val" style="color:#7a7aaa">' + peakFatigue + '</div><div class="card-note">Max energy depletion</div></div>';
+  html += '<div class="card"><div class="card-lbl" style="color:#cc6b9b">Peak Guarded</div><div class="card-val" style="color:#cc6b9b">' + peakGuarded + '</div><div class="card-note">Max information management</div></div>';
   html += '</div>';
 
-  // State timeline
   html += '<h2>Cognitive State Timeline</h2>';
   html += '<div class="tl">' + tlHtml + '</div>';
   html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;font-size:11px">';
-  for (i = 0; i < 5; i++) {
-    html += '<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:' + STATES[i].clr + '"></span>' + STATES[i].name + '</span>';
+  for (j = 0; j < 5; j++) {
+    html += '<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:' + STATES[j].clr + '"></span>' + STATES[j].name + '</span>';
   }
   html += '</div>';
 
-  // State distribution
   html += '<h2>State Distribution</h2>';
   var maxSt = 0.01;
-  for (i = 0; i < 5; i++) if (stTime[i] > maxSt) maxSt = stTime[i];
-  for (i = 0; i < 5; i++) {
-    var pct = dur > 0 ? (stTime[i] / dur * 100) : 0;
-    var bw = Math.max(2, stTime[i] / maxSt * 100);
-    html += '<div class="bar" style="width:' + bw + '%;background:' + STATES[i].clr + '">' + STATES[i].name + ' ' + pct.toFixed(0) + '%</div>';
+  for (j = 0; j < 5; j++) if (stTime[j] > maxSt) maxSt = stTime[j];
+  for (j = 0; j < 5; j++) {
+    var pct = dur > 0 ? (stTime[j] / dur * 100) : 0;
+    var bw = Math.max(2, stTime[j] / maxSt * 100);
+    html += '<div class="bar" style="width:' + bw + '%;background:' + STATES[j].clr + '">' + STATES[j].name + ' ' + pct.toFixed(0) + '%</div>';
   }
 
-  // Channel averages
   html += '<h2>Channel Averages</h2><table><tr><th>Channel</th><th>Average</th><th>Bar</th></tr>';
-  for (i = 0; i < NC; i++) {
-    var pctC = Math.round(chAvg[i] * 100);
-    html += '<tr><td style="color:' + CH[i].clr + '">' + CH[i].name + '</td><td>' + pctC + '%</td>';
-    html += '<td><div style="width:' + pctC + '%;height:12px;border-radius:3px;background:' + CH[i].clr + ';min-width:2px"></div></td></tr>';
+  for (j = 0; j < NC; j++) {
+    var pctC = Math.round(chAvg[j] * 100);
+    html += '<tr><td style="color:' + CH[j].clr + '">' + CH[j].name + '</td><td>' + pctC + '%</td>';
+    html += '<td><div style="width:' + pctC + '%;height:12px;border-radius:3px;background:' + CH[j].clr + ';min-width:2px"></div></td></tr>';
   }
   html += '</table>';
 
-  // Phase log
   if (phaseList) {
     html += '<h2>Phase Transitions</h2><table><tr><th>Time</th><th>Phase</th></tr>' + phaseList + '</table>';
   }
 
-  // Disclaimer
-  html += '<div class="note"><strong>Disclaimer:</strong> CHORUS Orator is an acoustic analysis tool, not a diagnostic instrument. Cognitive state labels (Focused, Stressed, Processing, Fatigued, Guarded) are based on validated prosodic markers from peer-reviewed speech science research, but reflect statistical tendencies across populations \u2014 not certainties about any individual. These readings should not be used for forensic, legal, medical, or employment decisions. All comparisons are to the speaker\'s own within-session baseline.</div>';
+  html += '<div class="note"><strong>Disclaimer:</strong> CHORUS Orator is an acoustic analysis tool, not a diagnostic instrument. Cognitive state labels are based on validated prosodic markers from peer-reviewed speech science research, but reflect statistical tendencies \u2014 not certainties about any individual. Not for forensic, legal, medical, or employment decisions. All comparisons are to the speaker\'s own within-session baseline.</div>';
 
   html += '</body></html>';
 
-  // Download the report
   var blob = new Blob([html], {type: 'text/html'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  var d = new Date();
-  a.download = 'CHORUS_Report_' + d.getFullYear() + pad2(d.getMonth()+1) + pad2(d.getDate()) + '_' + pad2(d.getHours()) + pad2(d.getMinutes()) + '.html';
+  var dt = new Date();
+  a.download = 'CHORUS_Report_' + dt.getFullYear() + pad2(dt.getMonth()+1) + pad2(dt.getDate()) + '_' + pad2(dt.getHours()) + pad2(dt.getMinutes()) + '.html';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
 // ═══════ EXTRACTION ═══════
 function extract(now) {
-  var i;
+  var j;
   if (micOn && an) {
     an.getFloatTimeDomainData(fT);
     an.getFloatFrequencyData(fF);
 
     // 0: LOUDNESS
     var sq = 0;
-    for (i = 0; i < fT.length; i++) sq += fT[i] * fT[i];
+    for (j = 0; j < fT.length; j++) sq += fT[j] * fT[j];
     var rms = Math.sqrt(sq / fT.length);
     var dbfs = rms > 1e-10 ? 20 * Math.log10(rms) : -72;
     var dbR = Math.abs(nFloorDb);
     raw[0] = Math.max(0, Math.min(1, (dbfs - nFloorDb) / dbR));
 
-    // 1: PITCH — autocorrelation
+    // 1: PITCH
     var minL = Math.floor(sr / 500);
     var maxL = Math.min(fT.length / 2, Math.floor(sr / 70));
     var bC = 0, bL = minL, ac0 = 0;
-    for (i = 0; i < fT.length; i += 2) ac0 += fT[i] * fT[i];
+    for (j = 0; j < fT.length; j += 2) ac0 += fT[j] * fT[j];
     ac0 *= 2;
     if (ac0 > 1e-8) {
       var c, end, lag;
       for (lag = minL; lag <= maxL; lag += 2) {
         c = 0; end = fT.length - lag;
-        for (i = 0; i < end; i += 4) c += fT[i] * fT[i + lag];
+        for (j = 0; j < end; j += 4) c += fT[j] * fT[j + lag];
         c = c * 4 / ac0;
         if (c > bC) { bC = c; bL = lag; }
       }
@@ -583,7 +595,7 @@ function extract(now) {
         lag = bL + off;
         if (lag < minL || lag > maxL) continue;
         c = 0; end = fT.length - lag;
-        for (i = 0; i < end; i += 4) c += fT[i] * fT[i + lag];
+        for (j = 0; j < end; j += 4) c += fT[j] * fT[j + lag];
         c = c * 4 / ac0;
         if (c > bC) { bC = c; bL = lag; }
       }
@@ -598,7 +610,7 @@ function extract(now) {
     }
     blLoud.push(raw[0]); if (blLoud.length > BL) blLoud.shift();
 
-    // 2: RATE — syllable envelope
+    // 2: RATE
     var isV = rms > nFloor * 3;
     if (isV) {
       if (rms > lastEV * 1.12 && !eUp) eUp = true;
@@ -615,38 +627,38 @@ function extract(now) {
     if (isSil && !inP) { inP = true; pT = now; }
     else if (!isSil && inP) { inP = false; pLog.push({s: pT, e: now}); }
     var t3 = now - 3000, silMs = 0;
-    for (i = pLog.length - 1; i >= 0; i--) {
-      var p = pLog[i]; if (p.e < t3) break;
+    for (j = pLog.length - 1; j >= 0; j--) {
+      var p = pLog[j]; if (p.e < t3) break;
       silMs += Math.min(p.e, now) - Math.max(p.s, t3);
     }
     if (inP) silMs += now - Math.max(pT, t3);
     raw[3] = Math.max(0, Math.min(1, silMs / 3000));
 
-    // 4: BRIGHTNESS — spectral centroid
+    // 4: BRIGHTNESS
     var bHz = sr / CFG.FFT, sW = 0, sE = 0;
-    for (i = 1; i < fF.length; i++) {
-      var e = Math.pow(10, fF[i] / 20); var ee = e * e;
-      sW += i * bHz * ee; sE += ee;
+    for (j = 1; j < fF.length; j++) {
+      var e = Math.pow(10, fF[j] / 20); var ee = e * e;
+      sW += j * bHz * ee; sE += ee;
     }
     raw[4] = Math.max(0, Math.min(1, (sE > 0 ? sW / sE : 0) / 5000));
 
-    // 5: STABILITY — inverse jitter
+    // 5: STABILITY
     if (pitchBuf.length >= 3) {
       var jSum = 0;
-      for (i = 1; i < pitchBuf.length; i++) jSum += Math.abs(pitchBuf[i] - pitchBuf[i - 1]);
+      for (j = 1; j < pitchBuf.length; j++) jSum += Math.abs(pitchBuf[j] - pitchBuf[j - 1]);
       var jAvg = jSum / (pitchBuf.length - 1);
-      var pMean = 0; for (i = 0; i < pitchBuf.length; i++) pMean += pitchBuf[i];
+      var pMean = 0; for (j = 0; j < pitchBuf.length; j++) pMean += pitchBuf[j];
       pMean /= pitchBuf.length;
       var jPct = pMean > 0 ? jAvg / pMean : 0;
       raw[5] = Math.max(0, Math.min(1, 1 - jPct * 8));
     } else { raw[5] = 0.5; }
 
-    // 6: CLARITY — HNR proxy
+    // 6: CLARITY
     raw[6] = Math.max(0, Math.min(1, pConf * 1.5));
 
-    // 7: TEXTURE — ZCR
+    // 7: TEXTURE
     var zc = 0;
-    for (i = 1; i < fT.length; i++) { if ((fT[i] >= 0) !== (fT[i - 1] >= 0)) zc++; }
+    for (j = 1; j < fT.length; j++) { if ((fT[j] >= 0) !== (fT[j - 1] >= 0)) zc++; }
     raw[7] = Math.max(0, Math.min(1, zc / (fT.length * 0.4)));
 
   } else if (demo) {
@@ -674,24 +686,31 @@ function extract(now) {
     blRate.push(raw[2]); if (blRate.length > BL) blRate.shift();
     pitchBuf.push(pHz); if (pitchBuf.length > JBUF) pitchBuf.shift();
   }
+
+  // EMA smooth raw → sm for display stability
+  for (j = 0; j < NC; j++) {
+    sm[j] += (raw[j] - sm[j]) * SM_ALPHA;
+  }
 }
 
 // ═══════ NORMALIZATION ═══════
 function normalize(dt) {
   var alpha = 1 - Math.exp(-dt / CFG.NTAU);
-  for (var i = 0; i < NC; i++) {
+  for (var j = 0; j < NC; j++) {
     var a = sWarm < 40 ? Math.min(1, alpha * 4) : alpha;
-    rMu[i] += (raw[i] - rMu[i]) * a;
-    var d = raw[i] - rMu[i];
-    rVar[i] += (d * d - rVar[i]) * a;
-    zN[i] = Math.max(-3, Math.min(3, d / Math.sqrt(Math.max(0.005, rVar[i]))));
+    rMu[j] += (raw[j] - rMu[j]) * a;
+    var d = raw[j] - rMu[j];
+    rVar[j] += (d * d - rVar[j]) * a;
+    var v = Math.sqrt(Math.max(0.005, rVar[j]));
+    zN[j] = v > 0 ? Math.max(-3, Math.min(3, d / v)) : 0;
   }
   if (sWarm < 100) sWarm++;
 }
 
-// ═══════ COGNITIVE STATE SCORING ═══════
-function arrMean(a) { if (!a.length) return 0; var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return s / a.length; }
-function arrStd(a) { var m = arrMean(a); var s = 0; for (var i = 0; i < a.length; i++) s += (a[i] - m) * (a[i] - m); return Math.sqrt(s / a.length); }
+// ═══════ COGNITIVE STATES ═══════
+function arrMean(a) { if (!a.length) return 0; var s = 0; for (var j = 0; j < a.length; j++) s += a[j]; return s / a.length; }
+function arrStd(a) { var m = arrMean(a); var s = 0; for (var j = 0; j < a.length; j++) s += (a[j] - m) * (a[j] - m); return Math.sqrt(s / Math.max(1, a.length)); }
+function safeNum(v) { return (v !== v || !isFinite(v)) ? 0 : v; } // NaN/Inf guard
 
 function computeStates() {
   if (blPitch.length < 20 || sWarm < 25) { setDomState(6); cogLoad = 0; stressIdx = 0; return; }
@@ -701,11 +720,11 @@ function computeStates() {
   var lMu = arrMean(blLoud);
   var rMean = arrMean(blRate);
 
-  var pitchCV = pMu > 1 ? pSd / pMu : 0;
-  var pitchElev = pHz > 0 && pMu > 1 ? Math.max(0, (pHz - pMu) / pMu) : 0;
-  var rateDef = Math.max(0, rMean - raw[2]);
-  var loudElev = Math.max(0, raw[0] - lMu);
-  var loudDef = Math.max(0, lMu - raw[0]);
+  var pitchCV = safeNum(pMu > 1 ? pSd / pMu : 0);
+  var pitchElev = safeNum(pHz > 0 && pMu > 1 ? Math.max(0, (pHz - pMu) / pMu) : 0);
+  var rateDef = safeNum(Math.max(0, rMean - raw[2]));
+  var loudElev = safeNum(Math.max(0, raw[0] - lMu));
+  var loudDef = safeNum(Math.max(0, lMu - raw[0]));
 
   // COGNITIVE LOAD (PROCESSING)
   var cl = 0;
@@ -713,7 +732,7 @@ function computeStates() {
   cl += raw[3] * 0.28;
   cl += Math.min(1, rateDef * 4) * 0.24;
   cl += Math.max(0, Math.min(1, (0.7 - raw[5]) * 2.5)) * 0.20;
-  cogLoad = Math.round(Math.min(100, cl * 100));
+  cogLoad = Math.round(Math.min(100, safeNum(cl) * 100));
 
   // STRESS
   var st = 0;
@@ -721,16 +740,16 @@ function computeStates() {
   st += Math.min(1, loudElev * 3) * 0.25;
   st += Math.max(0, Math.min(1, zN[4] / 2)) * 0.22;
   st += Math.max(0, Math.min(1, (0.5 - raw[6]) * 3)) * 0.21;
-  stressIdx = Math.round(Math.min(100, st * 100));
+  stressIdx = Math.round(Math.min(100, safeNum(st) * 100));
 
   // FATIGUE
   var ft = 0;
   ft += Math.min(1, loudDef * 3) * 0.25;
-  ft += Math.max(0, Math.min(1, (pMu - pHz) / Math.max(1, pMu) * 4)) * 0.20;
+  ft += Math.max(0, Math.min(1, safeNum((pMu - pHz) / Math.max(1, pMu)) * 4)) * 0.20;
   ft += Math.min(1, rateDef * 3) * 0.20;
   ft += Math.max(0, Math.min(1, (0.05 - pitchCV) * 30)) * 0.20;
   ft += Math.max(0, Math.min(1, (0.4 - raw[6]) * 3)) * 0.15;
-  fatigueIdx = Math.round(Math.min(100, ft * 100));
+  fatigueIdx = Math.round(Math.min(100, safeNum(ft) * 100));
 
   // GUARDED
   var gu = 0;
@@ -739,7 +758,7 @@ function computeStates() {
   gu += raw[3] * 0.20;
   gu += Math.min(1, rateDef * 3) * 0.20;
   gu += Math.max(0, Math.min(1, (0.5 - raw[6]) * 3)) * 0.20;
-  guardedIdx = Math.round(Math.min(100, gu * 100));
+  guardedIdx = Math.round(Math.min(100, safeNum(gu) * 100));
 
   // FOCUSED
   var fo = 0;
@@ -747,28 +766,29 @@ function computeStates() {
   fo += Math.max(0, Math.min(1, (1 - st) * 1.2)) * 0.20;
   fo += raw[5] * 0.25;
   fo += raw[6] * 0.25;
-  focusIdx = Math.round(Math.min(100, fo * 100));
+  focusIdx = Math.round(Math.min(100, safeNum(fo) * 100));
 
-  // Dominant state with debounce
+  // Dominant
   var scores = [focusIdx, stressIdx, cogLoad, fatigueIdx, guardedIdx];
   var maxS = 0, maxI = 0;
-  for (var i = 0; i < scores.length; i++) {
-    if (scores[i] > maxS) { maxS = scores[i]; maxI = i; }
+  for (var j = 0; j < scores.length; j++) {
+    if (scores[j] > maxS) { maxS = scores[j]; maxI = j; }
   }
   setDomState(maxI);
 
-  // Track peaks
+  // Peaks
   if (cogLoad > peakLoad) peakLoad = cogLoad;
   if (stressIdx > peakStress) peakStress = stressIdx;
+  if (fatigueIdx > peakFatigue) peakFatigue = fatigueIdx;
+  if (guardedIdx > peakGuarded) peakGuarded = guardedIdx;
 
-  // Log state for report (every 10 frames = ~3x per second)
+  // Log ~3x/sec
   if (sWarm % 10 === 0) {
     var tS = sessOn ? (performance.now() - sessT) / 1000 : 0;
     stateLog.push({t: tS, state: domState, cl: cogLoad, st: stressIdx, fi: fatigueIdx, gi: guardedIdx, fo: focusIdx});
   }
 }
 
-// State debounce — prevents flickering
 function setDomState(newState) {
   if (newState === domState) { pendCount = 0; return; }
   if (newState === pendState) {
@@ -782,7 +802,7 @@ function setDomState(newState) {
 // ═══════ FIELD + PHASES ═══════
 function compField(now) {
   var wS = 0, sV = 0;
-  for (var i = 0; i < NC; i++) { wS += Math.abs(CH[i].w); sV += CH[i].w * zN[i]; }
+  for (var j = 0; j < NC; j++) { wS += Math.abs(CH[j].w); sV += CH[j].w * zN[j]; }
   var S = wS > 0 ? sV / wS : 0;
   var tS = (now - sessT) / 1000;
   hist.S.push(S); hist.t.push(tS);
@@ -802,8 +822,8 @@ function compField(now) {
       cPh = ph;
     }
   }
-  hist.ch.push(Array.from(raw));
-  aD.push({a: tS * CFG.DEG_S * (Math.PI / 180), ch: Array.from(raw), S: S, ph: cPh});
+  hist.ch.push(Array.from(sm)); // use smoothed values for history
+  aD.push({a: tS * CFG.DEG_S * (Math.PI / 180), ch: Array.from(sm), S: S, ph: cPh});
   if (aD.length > CFG.MAX) {
     aD.shift(); hist.S.shift(); hist.D1.shift(); hist.D2.shift(); hist.t.shift(); hist.ch.shift();
   }
@@ -812,12 +832,12 @@ function compField(now) {
 function labelPh() {
   var n = hist.ch.length, lb = Math.min(60, n);
   if (lb < 10) return 0;
-  var i, zL = 0, zR = 0, zPa = 0;
-  for (i = n - lb; i < n; i++) { zL += hist.ch[i][0]; zR += hist.ch[i][2]; zPa += hist.ch[i][3]; }
+  var j, zL = 0, zR = 0, zPa = 0;
+  for (j = n - lb; j < n; j++) { zL += hist.ch[j][0]; zR += hist.ch[j][2]; zPa += hist.ch[j][3]; }
   zL /= lb; zR /= lb; zPa /= lb;
   var q = Math.floor(lb / 4), eL = 0, lL = 0;
-  for (i = n - lb; i < n - lb + q; i++) eL += hist.ch[i][0];
-  for (i = n - q; i < n; i++) lL += hist.ch[i][0];
+  for (j = n - lb; j < n - lb + q; j++) eL += hist.ch[j][0];
+  for (j = n - q; j < n; j++) lL += hist.ch[j][0];
   var tr = (lL / q) - (eL / q);
   var el = hist.t[n - 1] || 0;
   if (el < 3) return 0;
@@ -840,15 +860,13 @@ function interpret() {
   var state = STATES[domState];
   var parts = [state.desc];
 
-  // Add channel-specific detail beyond the state description
-  if (raw[0] > 0.65 && raw[2] > 0.4) parts.push("High energy delivery \u2014 loud and fast");
-  else if (raw[0] > 0.65 && raw[1] < 0.2) parts.push("Strong projection but monotone");
-  else if (raw[0] < 0.2 && raw[2] < 0.15) parts.push("Very subdued \u2014 low volume and slow");
+  if (sm[0] > 0.65 && sm[2] > 0.4) parts.push("High energy \u2014 loud and fast");
+  else if (sm[0] > 0.65 && sm[1] < 0.2) parts.push("Strong but monotone");
+  else if (sm[0] < 0.2 && sm[2] < 0.15) parts.push("Very subdued delivery");
 
-  if (raw[3] > 0.5 && raw[0] > 0.15) parts.push("Frequent pauses between speech");
-  if (raw[5] < 0.3 && raw[0] > 0.15) parts.push("Pitch is highly unstable (elevated jitter)");
+  if (sm[3] > 0.5 && sm[0] > 0.15) parts.push("Frequent pauses");
+  if (sm[5] < 0.3 && sm[0] > 0.15) parts.push("Unstable pitch (high jitter)");
 
-  // Pitch note
   if (pHz > 60 && pConf > 0.4) {
     var nN = ['C','C\u266F','D','D\u266F','E','F','F\u266F','G','G\u266F','A','A\u266F','B'];
     var semi = 12 * Math.log2(pHz / 440);
@@ -870,6 +888,10 @@ function tick() {
   computeStates();
   drawNew();
 
+  // Throttle DOM updates to 10Hz to prevent layout thrash
+  if (now - lastDomUpdate < DOM_INTERVAL) return;
+  lastDomUpdate = now;
+
   // Timer
   var el = ((now - sessT) / 1000) | 0;
   document.getElementById('tmr').textContent =
@@ -882,11 +904,11 @@ function tick() {
   document.getElementById('phase-name').textContent = ph.n;
 
   // 12 o'clock status
-  var st = STATES[domState];
+  var stObj = STATES[domState];
   var sLbl = document.getElementById('status-lbl');
-  sLbl.textContent = st.name;
-  sLbl.style.color = st.clr;
-  sLbl.style.borderColor = st.clr + '44';
+  sLbl.textContent = stObj.name;
+  sLbl.style.color = stObj.clr;
+  sLbl.style.borderColor = stObj.clr + '44';
 
   // Interpretation
   document.getElementById('interp-text').textContent = interpret();
@@ -899,30 +921,60 @@ function tick() {
   stEl.textContent = sWarm > 25 ? stressIdx : '\u2014';
   stEl.style.color = stressIdx > 55 ? '#e85d5d' : stressIdx > 30 ? '#e8a83c' : '#cc6b6b';
 
-  // Metrics
-  for (var i = 0; i < NC; i++) {
-    var mv = document.getElementById('mv-' + i);
-    if (mv) mv.textContent = (raw[i] * 100 | 0) + '%';
+  // Metrics — use smoothed values
+  for (var j = 0; j < NC; j++) {
+    var mv = document.getElementById('mv-' + j);
+    if (mv) mv.textContent = (sm[j] * 100 | 0) + '%';
   }
 }
 
 // ═══════ ATLAS ═══════
 var aBuf = null, abx = null, lastDI = 0;
+var prevW = 0, prevH = 0; // track previous size to prevent unnecessary rebuilds
+
 function mkB() {
   aBuf = document.createElement('canvas');
-  aBuf.width = W || 2; aBuf.height = H || 2;
+  aBuf.width = W; aBuf.height = H;
   abx = aBuf.getContext('2d');
   lastDI = 0;
 }
+
 function resize() {
   var a = document.getElementById('atlas-wrap');
   if (!a) return;
-  W = cv.width = a.clientWidth;
-  H = cv.height = a.clientHeight;
+  var cw = a.clientWidth;
+  var ch = a.clientHeight;
+  if (cw < 2 || ch < 2) return;
+
+  // Only rebuild if size actually changed by more than 2px (prevents micro-jitter)
+  if (Math.abs(cw - prevW) < 3 && Math.abs(ch - prevH) < 3) return;
+
+  DPR = window.devicePixelRatio || 1;
+  W = cw;
+  H = ch;
+  prevW = cw;
+  prevH = ch;
+
+  // Set canvas resolution for crisp rendering
+  cv.width = Math.round(W * DPR);
+  cv.height = Math.round(H * DPR);
+  cv.style.width = W + 'px';
+  cv.style.height = H + 'px';
+  cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
   mkB();
+  // Rescale offscreen buffer too
+  aBuf.width = Math.round(W * DPR);
+  aBuf.height = Math.round(H * DPR);
+  abx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  lastDI = 0;
 }
-resize();
-window.addEventListener('resize', resize);
+
+window.addEventListener('resize', function() {
+  // Debounce resize to prevent rapid fire on iOS
+  if (resize._raf) cancelAnimationFrame(resize._raf);
+  resize._raf = requestAnimationFrame(resize);
+});
 
 function aLay() {
   var cX = W / 2, cY = H / 2, mR = Math.min(W, H) / 2 - 14;
@@ -962,10 +1014,12 @@ function drawNew() {
     var sN = Math.max(0, Math.min(1, (d.S + 2) / 4));
     var pc = PHASES[d.ph].c;
     var al = Math.round((sN * 0.55 + 0.10) * 255);
+    var alHex = al.toString(16);
+    if (alHex.length < 2) alHex = '0' + alHex;
     abx.beginPath();
     abx.arc(L.cX, L.cY, (L.rF0 + L.rF1) / 2, a0, a1);
     abx.lineWidth = L.rF1 - L.rF0;
-    abx.strokeStyle = pc + al.toString(16).padStart(2, '0');
+    abx.strokeStyle = pc + alHex;
     abx.stroke();
 
     for (var ci = 0; ci < NC; ci++) {
@@ -975,11 +1029,18 @@ function drawNew() {
       abx.arc(L.cX, L.cY, rM, a0, a1);
       abx.lineWidth = L.cH - 1;
       var ca = Math.round((v * 0.68 + 0.03) * 255);
-      abx.strokeStyle = CH[ci].clr + ca.toString(16).padStart(2, '0');
+      var caHex = ca.toString(16);
+      if (caHex.length < 2) caHex = '0' + caHex;
+      abx.strokeStyle = CH[ci].clr + caHex;
       abx.stroke();
     }
   }
   lastDI = n;
+}
+
+function toHex2(n) {
+  var h = Math.round(Math.max(0, Math.min(255, n))).toString(16);
+  return h.length < 2 ? '0' + h : h;
 }
 
 function drawAtlas() {
@@ -994,36 +1055,35 @@ function drawAtlas() {
   for (var g = 0; g < guides.length; g++) {
     cx.beginPath(); cx.arc(L.cX, L.cY, guides[g], 0, PI2); cx.stroke();
   }
-  for (var i = 1; i < NC; i++) {
-    cx.beginPath(); cx.arc(L.cX, L.cY, L.r0 + i * L.cH, 0, PI2); cx.stroke();
+  for (var j = 1; j < NC; j++) {
+    cx.beginPath(); cx.arc(L.cX, L.cY, L.r0 + j * L.cH, 0, PI2); cx.stroke();
   }
 
-  if (aBuf) cx.drawImage(aBuf, 0, 0);
+  if (aBuf) cx.drawImage(aBuf, 0, 0, W, H);
   if (!aD.length) return;
 
   var n = aD.length;
-  var vol = raw[0];
+  var vol = sm[0]; // use smoothed loudness
   var stClr = STATES[domState].clr;
 
   // Pulse ring
   var pW = 2 + vol * 14;
-  var pA = vol * 0.65 + 0.04;
   cx.beginPath(); cx.arc(L.cX, L.cY, L.rP, 0, PI2);
   cx.lineWidth = pW;
-  cx.strokeStyle = stClr + Math.round(pA * 255).toString(16).padStart(2, '0');
+  cx.strokeStyle = stClr + toHex2((vol * 0.65 + 0.04) * 255);
   cx.stroke();
 
   if (vol > 0.2) {
     var gg = cx.createRadialGradient(L.cX, L.cY, L.rP, L.cX, L.cY, L.rO + 10);
-    gg.addColorStop(0, stClr + Math.round(vol * 0.18 * 255).toString(16).padStart(2, '0'));
+    gg.addColorStop(0, stClr + toHex2(vol * 0.18 * 255));
     gg.addColorStop(1, stClr + '00');
     cx.beginPath(); cx.arc(L.cX, L.cY, L.rO + 10, 0, PI2);
     cx.fillStyle = gg; cx.fill();
   }
 
   // Phase boundaries
-  for (i = 0; i < pB.length; i++) {
-    var b = pB[i];
+  for (j = 0; j < pB.length; j++) {
+    var b = pB[j];
     var ba = b.a - Math.PI / 2;
     cx.beginPath();
     cx.moveTo(L.cX + L.rF0 * Math.cos(ba), L.cY + L.rF0 * Math.sin(ba));
@@ -1062,12 +1122,12 @@ function drawAtlas() {
   // Ring labels
   cx.save();
   cx.textAlign = 'right';
-  for (i = 0; i < NC; i++) {
-    var rM = L.r0 + i * L.cH + L.cH * 0.5;
+  for (j = 0; j < NC; j++) {
+    var rM = L.r0 + j * L.cH + L.cH * 0.5;
     var labelA = -Math.PI * 0.58;
     cx.font = '600 7px DM Sans';
-    cx.fillStyle = CH[i].clr + '55';
-    cx.fillText(CH[i].name, L.cX + rM * Math.cos(labelA) - 3, L.cY + rM * Math.sin(labelA));
+    cx.fillStyle = CH[j].clr + '55';
+    cx.fillText(CH[j].name, L.cX + rM * Math.cos(labelA) - 3, L.cY + rM * Math.sin(labelA));
   }
   cx.restore();
 }
@@ -1078,13 +1138,13 @@ function render() {
   requestAnimationFrame(render);
 }
 
-window.addEventListener('load', function() { resize(); requestAnimationFrame(render); });
+// ═══════ INIT ═══════
+window.addEventListener('load', function() {
+  setTimeout(function() { resize(); requestAnimationFrame(render); }, 100);
+});
 
 // ═══════ iOS FIXES ═══════
-// iOS Safari needs explicit touch handlers — onclick can be swallowed on some elements
-// Also: AudioContext must be created/resumed inside a user gesture on iOS
 (function() {
-  // Helper: attach both click and touchend to ensure iOS gets the event
   function iosTap(el, fn) {
     if (!el) return;
     var fired = false;
@@ -1097,50 +1157,29 @@ window.addEventListener('load', function() { resize(); requestAnimationFrame(ren
     });
   }
 
-  // Wait for DOM
   function bindAll() {
-    // Begin button
     var beginBtn = document.querySelector('.sb-go');
-    if (beginBtn) {
-      beginBtn.removeAttribute('onclick');
-      iosTap(beginBtn, go);
-    }
+    if (beginBtn) { beginBtn.removeAttribute('onclick'); iosTap(beginBtn, go); }
 
-    // Mic overlay buttons
     var allowBtn = document.querySelector('.ov-allow');
-    if (allowBtn) {
-      allowBtn.removeAttribute('onclick');
-      iosTap(allowBtn, reqMic);
-    }
-    var demoBtn = document.querySelector('.ov-demo');
-    if (demoBtn) {
-      demoBtn.removeAttribute('onclick');
-      iosTap(demoBtn, goDemo);
-    }
+    if (allowBtn) { allowBtn.removeAttribute('onclick'); iosTap(allowBtn, reqMic); }
 
-    // Header buttons
+    var demoBtn = document.querySelector('.ov-demo');
+    if (demoBtn) { demoBtn.removeAttribute('onclick'); iosTap(demoBtn, goDemo); }
+
     var micB = document.getElementById('mic-b');
-    if (micB) {
-      micB.removeAttribute('onclick');
-      iosTap(micB, togMic);
-    }
+    if (micB) { micB.removeAttribute('onclick'); iosTap(micB, togMic); }
+
     var recB = document.getElementById('rec-b');
-    if (recB) {
-      recB.removeAttribute('onclick');
-      iosTap(recB, togRec);
-    }
+    if (recB) { recB.removeAttribute('onclick'); iosTap(recB, togRec); }
+
     var rptB = document.getElementById('rpt-b');
-    if (rptB) {
-      rptB.removeAttribute('onclick');
-      iosTap(rptB, genReport);
-    }
+    if (rptB) { rptB.removeAttribute('onclick'); iosTap(rptB, genReport); }
   }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bindAll);
-  } else {
-    bindAll();
-  }
+  } else { bindAll(); }
 })();
 </script>
 </body>
