@@ -723,7 +723,8 @@ body.v7-aether .sc-unit{
   #protocol-bar{padding:3px 8px !important;gap:3px !important;font-size:10px !important}
   #protocol-bar select,#protocol-bar button,#protocol-bar input{font-size:10px !important;padding:2px 6px !important;height:22px !important}
   /* HIDE protocol script block (manual mode text) — too large for mobile */
-  #protocol-script{display:none !important}
+  body.v7-aether #protocol-script,#protocol-script{display:none !important}
+  #protocol-step{display:none !important}
   /* Mid area: natural height, no max constraint */
   body.v7-aether #mid-area{flex:0 0 auto;min-height:0;max-height:none;overflow:visible !important;display:flex;flex-direction:column}
   /* Radar: fill available width, proportional height */
