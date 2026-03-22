@@ -710,33 +710,51 @@ body.v7-aether .sc-unit{
 
 /* ═══ MOBILE RESPONSIVE ═══ */
 @media (max-width:768px){
-  body.v7-aether #app{overflow-y:auto !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  /* Allow scrolling */
+  body.v7-aether #app{overflow-y:auto !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;position:fixed;inset:0}
+  /* Hide Aether side panels */
   body.v7-aether #v7-float-left,body.v7-aether #v7-float-right{display:none !important}
-  body.v7-aether #hdr{height:auto;min-height:44px;padding:6px 8px;flex-wrap:wrap;gap:4px}
-  #meta-bar{padding:4px 8px !important;gap:4px !important;font-size:10px !important}
-  #meta-bar select,#meta-bar input{font-size:10px !important;padding:2px 4px !important;height:24px !important}
-  #protocol-bar{padding:4px 8px !important;gap:4px !important;font-size:10px !important}
-  #protocol-bar select,#protocol-bar button,#protocol-bar input{font-size:10px !important;padding:2px 6px !important;height:24px !important}
-  #protocol-script{padding:4px 8px !important;font-size:11px !important;min-height:auto !important;max-height:60px !important}
-  body.v7-aether #mid-area{flex:0 0 auto;min-height:320px;max-height:50vh}
-  body.v7-aether #atlas-wrap{margin:6px !important;min-height:280px !important;border-radius:16px !important}
-  body.v7-aether .sc-panel{position:static !important;transform:none !important;width:auto !important;margin:0 6px 6px !important;gap:4px !important}
-  body.v7-aether .sc{min-height:40px !important;padding:6px 4px !important;border-radius:10px !important}
-  body.v7-aether .sc-val{font-size:14px !important}
-  body.v7-aether .sc-lbl{font-size:7px !important;min-height:16px !important}
+  /* Compact header */
+  body.v7-aether #hdr{height:auto;min-height:40px;padding:6px 8px;flex-wrap:wrap;gap:4px}
+  /* Compact meta bar */
+  #meta-bar{padding:3px 8px !important;gap:3px !important;font-size:10px !important}
+  #meta-bar select,#meta-bar input{font-size:10px !important;padding:2px 4px !important;height:22px !important}
+  /* Compact protocol bar */
+  #protocol-bar{padding:3px 8px !important;gap:3px !important;font-size:10px !important}
+  #protocol-bar select,#protocol-bar button,#protocol-bar input{font-size:10px !important;padding:2px 6px !important;height:22px !important}
+  /* HIDE protocol script block (manual mode text) — too large for mobile */
+  #protocol-script{display:none !important}
+  /* Mid area: natural height, no max constraint */
+  body.v7-aether #mid-area{flex:0 0 auto;min-height:0;max-height:none;overflow:visible !important;display:flex;flex-direction:column}
+  /* Radar: fill available width, proportional height */
+  body.v7-aether #atlas-wrap{margin:4px !important;min-height:0 !important;border-radius:14px !important;flex:0 0 auto;height:55vw;max-height:340px;order:1}
+  /* Score panels: clean grid below radar */
+  body.v7-aether .sc-panel{position:static !important;transform:none !important;width:auto !important;margin:0 8px 4px !important;gap:6px !important;grid-template-columns:repeat(3,1fr) !important}
+  body.v7-aether #scores-left{order:2}
+  body.v7-aether #scores-right{order:3}
+  body.v7-aether .sc{min-height:38px !important;padding:5px 3px !important;border-radius:10px !important}
+  body.v7-aether .sc-val{font-size:16px !important}
+  body.v7-aether .sc-lbl{font-size:8px !important;min-height:14px !important}
   body.v7-aether .sc-unit{font-size:7px !important}
-  body.v7-aether #interp{min-height:auto !important;height:auto !important;padding:6px 8px !important;gap:6px !important}
-  #research-ribbon{padding:4px 8px !important;gap:4px !important;font-size:9px !important}
-  .rb{padding:2px 5px !important;font-size:8px !important}
-  #state-legend{padding:4px 8px 8px !important;gap:4px !important;font-size:8px !important}
+  /* Interpretation bar */
+  body.v7-aether #interp{min-height:auto !important;height:auto !important;padding:6px 8px !important;gap:4px !important}
+  /* Research ribbon */
+  #research-ribbon{padding:3px 8px !important;gap:3px !important;font-size:9px !important;flex-wrap:wrap !important}
+  .rb{padding:2px 4px !important;font-size:8px !important}
+  /* State legend */
+  #state-legend{padding:4px 8px 8px !important;gap:3px !important;font-size:8px !important}
+  /* VPD panel */
   #vpd-sheet{max-height:60vh}
   #vpd-toggle{padding:4px 10px}
   #vpd-panel.on{max-height:55vh}
-  body.v7-aether #v7-state-name{font-size:22px !important}
+  /* State name in radar center */
+  body.v7-aether #v7-state-name{font-size:20px !important}
+  body.v7-aether #v7-state-subtitle{font-size:8px !important}
 }
 @media (max-width:400px){
-  body.v7-aether #mid-area{min-height:260px;max-height:45vh}
-  body.v7-aether #atlas-wrap{min-height:240px !important}
+  body.v7-aether #atlas-wrap{height:50vw;max-height:280px}
+  body.v7-aether .sc-val{font-size:14px !important}
+  body.v7-aether .sc{min-height:34px !important}
 }
 </style>
 </head>
