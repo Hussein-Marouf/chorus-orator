@@ -707,6 +707,143 @@ body.v7-aether .sc-unit{
 #vpd-diagnostic .vpd-card-title{color:var(--violet)}
 @media(max-width:900px){#vpd-inner{grid-template-columns:1fr 1fr}}
 @media(max-width:550px){#vpd-inner{grid-template-columns:1fr}#vpd-panel.on{max-height:400px}}
+
+/* ═══ MOBILE-FIRST RESPONSIVE FIX ═══ */
+@media (max-width:768px){
+  /* Allow scrolling on mobile */
+  body.v7-aether #app{
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+
+  /* Hide Aether side panels on mobile — info is redundant with score tiles */
+  body.v7-aether #v7-float-left,
+  body.v7-aether #v7-float-right{
+    display:none !important;
+  }
+
+  /* Header compact */
+  body.v7-aether #hdr{
+    height:auto;
+    min-height:44px;
+    padding:6px 8px;
+    flex-wrap:wrap;
+    gap:4px;
+  }
+
+  /* Meta bar compact */
+  #meta-bar{
+    padding:4px 8px !important;
+    gap:4px !important;
+    font-size:10px !important;
+  }
+  #meta-bar select,#meta-bar input{
+    font-size:10px !important;
+    padding:2px 4px !important;
+    height:24px !important;
+  }
+
+  /* Protocol bar compact */
+  #protocol-bar{
+    padding:4px 8px !important;
+    gap:4px !important;
+    font-size:10px !important;
+  }
+  #protocol-bar select,#protocol-bar button,#protocol-bar input{
+    font-size:10px !important;
+    padding:2px 6px !important;
+    height:24px !important;
+  }
+
+  /* Manual mode / protocol script compact */
+  #protocol-script{
+    padding:4px 8px !important;
+    font-size:11px !important;
+    min-height:auto !important;
+    max-height:60px !important;
+  }
+
+  /* Mid area — let it shrink naturally */
+  body.v7-aether #mid-area{
+    flex:0 0 auto;
+    min-height:320px;
+    max-height:50vh;
+  }
+
+  /* Radar sizing */
+  body.v7-aether #atlas-wrap{
+    margin:6px 6px 0 !important;
+    min-height:280px !important;
+    border-radius:16px !important;
+  }
+
+  /* Score panels — compact 3-column grid below radar */
+  body.v7-aether .sc-panel{
+    position:static !important;
+    transform:none !important;
+    width:auto !important;
+    margin:0 6px 6px !important;
+    gap:4px !important;
+  }
+  body.v7-aether .sc{
+    min-height:40px !important;
+    padding:6px 4px !important;
+    border-radius:10px !important;
+  }
+  body.v7-aether .sc-val{font-size:14px !important}
+  body.v7-aether .sc-lbl{font-size:7px !important;min-height:16px !important}
+  body.v7-aether .sc-unit{font-size:7px !important}
+
+  /* Interp bar compact */
+  body.v7-aether #interp{
+    min-height:auto !important;
+    height:auto !important;
+    padding:6px 8px !important;
+    gap:6px !important;
+  }
+  #interp-phase{font-size:10px !important}
+  #interp-text{font-size:9px !important}
+
+  /* Research ribbon compact */
+  #research-ribbon{
+    padding:4px 8px !important;
+    gap:4px !important;
+    font-size:9px !important;
+  }
+  .rb{padding:2px 5px !important;font-size:8px !important}
+
+  /* State legend compact */
+  #state-legend{
+    padding:4px 8px 8px !important;
+    gap:4px !important;
+    font-size:8px !important;
+  }
+
+  /* VPD sheet — don't auto-expand on mobile, keep collapsed */
+  #vpd-sheet{max-height:60vh}
+  #vpd-toggle{padding:4px 10px}
+  #vpd-toggle-label{font-size:9px}
+  #vpd-toggle-summary{font-size:9px}
+  #vpd-panel.on{max-height:55vh}
+  #vpd-inner{padding:8px 10px 10px;gap:6px}
+  .vpd-card{padding:6px 8px}
+  .vpd-metric-val{font-size:12px}
+  .vpd-metric-label{font-size:9px}
+  .vpd-insight{font-size:10px;padding:6px 8px}
+
+  /* State name in radar */
+  body.v7-aether #v7-state-name{font-size:22px !important}
+}
+
+/* Extra small phones */
+@media (max-width:400px){
+  body.v7-aether #mid-area{min-height:260px;max-height:45vh}
+  body.v7-aether #atlas-wrap{min-height:240px !important}
+  body.v7-aether .sc-panel{grid-template-columns:repeat(3,1fr) !important}
+  body.v7-aether .sc-val{font-size:12px !important}
+}
 </style>
 </head>
 <body>
@@ -1392,10 +1529,11 @@ function vpdUpdateUI(now) {
   }
 
   // ── First-data: auto-expand panel so insights are immediately visible ──
+  // Skip auto-expand on mobile (≤768px) — panel would cover the whole screen
   if (!_vpdFirstDataFired) {
     _vpdFirstDataFired = true;
     toggleClassIfNeeded(VPDUI.toggle, 'has-data', true);
-    if (!VPD.open) {
+    if (!VPD.open && window.innerWidth > 768) {
       VPD.open = true;
       toggleClassIfNeeded(VPDUI.toggle, 'open', true);
       toggleClassIfNeeded(VPDUI.panel, 'on', true);
