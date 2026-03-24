@@ -4,17 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="Research-forward live vocal laboratory — real-time voice analysis, cognitive state detection, and vocal pattern diagnostics.">
-<meta name="theme-color" content="#08090f">
+<meta name="theme-color" content="#f5f5f7">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-<title>CHORUS Orator v7.1.0 Aether + Vocal Pattern Diagnostics</title>
+<title>CHORUS Voice Coach</title>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -774,6 +774,299 @@ body.v7-aether .sc-unit{
   body.v7-aether #atlas-wrap{height:50vw;max-height:280px}
   body.v7-aether .sc-val{font-size:14px !important}
   body.v7-aether .sc{min-height:34px !important}
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   COACH LIGHT THEME — Consumer-facing clean light mode
+   Layers on top of body.v7-aether without removing it.
+   All scoring/calibration logic is untouched — this is purely visual.
+   ═══════════════════════════════════════════════════════════════════ */
+body.v7-aether.coach-light{
+  --bg:#f5f5f7;--tx:#1d1d1f;--tx2:#6e6e73;--tx3:#aeaeb2;
+  --gold:#c8952e;--violet:#7b61c2;--red:#c93d3d;--green:#2da65d;--teal:#4a9fb5;
+  background:#f5f5f7 !important;color:#1d1d1f !important;
+  overflow-y:auto !important;-webkit-overflow-scrolling:touch !important;
+}
+body.v7-aether.coach-light #app{
+  overflow-y:auto !important;-webkit-overflow-scrolling:touch !important;
+  align-items:center !important;
+}
+/* ── Header: minimal, premium ── */
+body.v7-aether.coach-light #hdr{
+  background:rgba(255,255,255,0.96) !important;backdrop-filter:blur(20px) saturate(1.2) !important;
+  border-bottom:1px solid rgba(0,0,0,0.05) !important;box-shadow:none !important;
+  height:48px !important;padding:0 16px !important;
+}
+body.v7-aether.coach-light #hdr .brand{color:#1d1d1f !important;font-size:14px !important}
+body.v7-aether.coach-light #hdr .brand b{color:var(--gold) !important}
+body.v7-aether.coach-light .hbtn{
+  background:transparent !important;color:#1d1d1f !important;
+  border:1px solid rgba(0,0,0,0.10) !important;border-radius:10px !important;
+  font-size:10px !important;padding:4px 10px !important;font-weight:500 !important;
+  transition:all 0.15s ease !important;
+}
+body.v7-aether.coach-light .hbtn:hover{background:rgba(0,0,0,0.04) !important}
+body.v7-aether.coach-light .hbtn-mark{color:var(--gold) !important;border-color:rgba(200,149,46,0.3) !important}
+body.v7-aether.coach-light .hbtn-rec{color:var(--red) !important;border-color:rgba(201,61,61,0.3) !important}
+body.v7-aether.coach-light .hbtn-rpt{color:var(--violet) !important;border-color:rgba(123,97,194,0.3) !important}
+body.v7-aether.coach-light .hbtn-exp{color:var(--teal) !important;border-color:rgba(74,159,181,0.3) !important}
+body.v7-aether.coach-light #tmr{color:#aeaeb2 !important;font-size:13px !important}
+body.v7-aether.coach-light .md{border-color:var(--green) !important}
+body.v7-aether.coach-light .live-dot{background:var(--green) !important;color:var(--green) !important}
+body.v7-aether.coach-light .gw{display:none !important} /* hide gain slider for consumers */
+/* ── Meta & Protocol bars — hidden by default ── */
+body.v7-aether.coach-light #meta-bar,
+body.v7-aether.coach-light #protocol-bar,
+body.v7-aether.coach-light #protocol-step,
+body.v7-aether.coach-light #protocol-script{display:none !important}
+/* ── Mid area: restructure for consumer layout ── */
+body.v7-aether.coach-light #mid-area{
+  background:transparent !important;flex-direction:column !important;
+  align-items:center !important;gap:0 !important;padding:8px 0 !important;
+}
+body.v7-aether.coach-light #atlas-wrap{
+  background:radial-gradient(ellipse at 50% 45%,#ffffff,#f0f0f2) !important;
+  border:1px solid rgba(0,0,0,0.06) !important;border-radius:50% !important;
+  box-shadow:0 4px 24px rgba(0,0,0,0.06),inset 0 0 40px rgba(0,0,0,0.02) !important;
+  width:min(360px,65vw) !important;height:min(360px,65vw) !important;
+  min-height:0 !important;margin:0 auto !important;
+  flex:0 0 auto !important;order:1 !important;
+  aspect-ratio:1/1;
+}
+/* ── Score panels: horizontal strip below radar ── */
+body.v7-aether.coach-light .sc-panel{
+  position:static !important;transform:none !important;
+  display:grid !important;grid-template-columns:repeat(3,1fr) !important;
+  width:min(440px,92vw) !important;margin:12px auto 0 !important;
+  gap:8px !important;background:transparent !important;
+  backdrop-filter:none !important;border:none !important;box-shadow:none !important;
+  flex-shrink:0 !important;
+}
+body.v7-aether.coach-light #scores-left{order:2 !important}
+body.v7-aether.coach-light #scores-right{order:3 !important}
+body.v7-aether.coach-light .sc{
+  background:#ffffff !important;
+  border:1px solid rgba(0,0,0,0.05) !important;
+  box-shadow:0 1px 4px rgba(0,0,0,0.04) !important;
+  border-radius:14px !important;padding:10px 6px !important;
+  min-height:52px !important;position:relative;overflow:hidden;
+  text-align:center !important;
+}
+body.v7-aether.coach-light .sc::before{
+  content:'';position:absolute;left:0;bottom:0;height:3px;width:100%;
+  background:linear-gradient(to right,var(--score-clr,#ddd) var(--score-pct,0%),rgba(0,0,0,0.04) var(--score-pct,0%));
+  transition:background 0.4s ease;
+}
+body.v7-aether.coach-light .sc-val{
+  color:var(--score-clr,#1d1d1f) !important;font-size:22px !important;font-weight:700 !important;
+}
+body.v7-aether.coach-light .sc-lbl{
+  color:#6e6e73 !important;font-size:9px !important;font-weight:500 !important;
+  letter-spacing:0.04em !important;
+}
+body.v7-aether.coach-light .sc-unit{display:none !important}
+body.v7-aether.coach-light .sc.hi{
+  border-color:var(--score-clr,rgba(0,0,0,0.1)) !important;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08) !important;
+  transform:translateY(-1px);
+}
+/* ── Interpretation (Coach Panel) — the hero text ── */
+body.v7-aether.coach-light #interp{
+  background:#ffffff !important;border:1px solid rgba(0,0,0,0.05) !important;
+  border-radius:20px !important;margin:16px auto 12px !important;
+  box-shadow:0 2px 16px rgba(0,0,0,0.05) !important;
+  min-height:90px !important;padding:20px 28px !important;
+  width:min(480px,92vw) !important;order:4 !important;
+}
+body.v7-aether.coach-light #interp-text{
+  font-size:18px !important;line-height:1.6 !important;color:#1d1d1f !important;
+  font-family:'DM Sans',sans-serif !important;font-weight:400 !important;
+  -webkit-line-clamp:6 !important;
+}
+body.v7-aether.coach-light #phase-row{margin-bottom:6px !important}
+body.v7-aether.coach-light #phase-name{
+  color:#6e6e73 !important;font-size:12px !important;
+  font-weight:600 !important;letter-spacing:0.08em !important;
+  text-transform:uppercase !important;
+}
+/* ── Research ribbon — hidden by default ── */
+body.v7-aether.coach-light #research-ribbon{display:none !important}
+/* ── State legend — hidden by default ── */
+body.v7-aether.coach-light #state-legend{display:none !important}
+/* ── Aether float panels — hidden by default ── */
+body.v7-aether.coach-light #v7-float-left,
+body.v7-aether.coach-light #v7-float-right{display:none !important}
+body.v7-aether.coach-light #v7-labmark{display:none !important}
+/* ── SNR/Q badges — hidden by default ── */
+body.v7-aether.coach-light #snr-badge,
+body.v7-aether.coach-light #qual-badge{display:none !important}
+/* ── VPD sheet ── */
+body.v7-aether.coach-light #vpd-sheet{
+  background:transparent !important;
+}
+body.v7-aether.coach-light #vpd-toggle{
+  background:rgba(255,255,255,0.96) !important;color:#1d1d1f !important;
+  border:1px solid rgba(0,0,0,0.06) !important;border-bottom:none !important;
+  border-radius:16px 16px 0 0 !important;
+}
+body.v7-aether.coach-light #vpd-toggle-label{color:var(--gold) !important}
+body.v7-aether.coach-light #vpd-toggle-summary{color:#6e6e73 !important}
+body.v7-aether.coach-light #vpd-panel{
+  background:rgba(255,255,255,0.98) !important;color:#1d1d1f !important;
+  border:1px solid rgba(0,0,0,0.06) !important;border-top:none !important;
+}
+body.v7-aether.coach-light .vpd-card{
+  background:rgba(0,0,0,0.02) !important;border:1px solid rgba(0,0,0,0.05) !important;
+  border-radius:12px !important;
+}
+body.v7-aether.coach-light .vpd-card-title{color:#6e6e73 !important}
+body.v7-aether.coach-light .vpd-metric-label{color:#6e6e73 !important}
+body.v7-aether.coach-light .vpd-metric-val{color:#1d1d1f !important}
+body.v7-aether.coach-light #vpd-insight-text{color:#1d1d1f !important;font-size:14px !important;line-height:1.5 !important}
+body.v7-aether.coach-light #vpd-diagnostic{border-left-color:var(--gold) !important}
+/* ── Overlays: premium consumer design ── */
+body.v7-aether.coach-light #start{
+  background:#f5f5f7 !important;
+  display:flex !important;align-items:center !important;justify-content:center !important;
+}
+body.v7-aether.coach-light .sb{
+  background:#ffffff !important;box-shadow:0 4px 32px rgba(0,0,0,0.06) !important;
+  border:1px solid rgba(0,0,0,0.04) !important;border-radius:28px !important;
+  max-width:420px !important;padding:48px 40px 40px !important;text-align:center !important;
+}
+body.v7-aether.coach-light .sb-brand{
+  color:#aeaeb2 !important;font-size:12px !important;letter-spacing:0.15em !important;
+  text-transform:uppercase !important;margin-bottom:4px !important;
+}
+body.v7-aether.coach-light .sb-title{
+  color:#1d1d1f !important;text-shadow:none !important;
+  background:none !important;-webkit-text-fill-color:#1d1d1f !important;
+  font-size:36px !important;font-weight:700 !important;margin-bottom:20px !important;
+}
+body.v7-aether.coach-light .sb-text{
+  color:#6e6e73 !important;font-size:15px !important;line-height:1.6 !important;
+  margin-bottom:28px !important;
+}
+body.v7-aether.coach-light .sb-go{
+  background:#1d1d1f !important;color:#ffffff !important;
+  border:none !important;border-radius:14px !important;
+  box-shadow:0 2px 12px rgba(0,0,0,0.12) !important;
+  text-shadow:none !important;font-size:16px !important;
+  padding:14px 36px !important;font-weight:600 !important;
+  letter-spacing:0.01em !important;transition:all 0.2s ease !important;
+}
+body.v7-aether.coach-light .sb-go:hover{
+  background:#333 !important;transform:translateY(-1px) !important;
+  box-shadow:0 4px 16px rgba(0,0,0,0.16) !important;
+}
+body.v7-aether.coach-light .sb-note{
+  color:#aeaeb2 !important;font-size:11px !important;margin-top:16px !important;
+}
+body.v7-aether.coach-light #mic-ov,
+body.v7-aether.coach-light #cal-ov,
+body.v7-aether.coach-light #bl-ov{
+  background:rgba(245,245,247,0.96) !important;backdrop-filter:blur(16px) !important;
+}
+body.v7-aether.coach-light .ov-box{
+  background:#ffffff !important;color:#1d1d1f !important;
+  border:1px solid rgba(0,0,0,0.06) !important;
+  box-shadow:0 8px 40px rgba(0,0,0,0.08) !important;
+}
+body.v7-aether.coach-light .ov-t,.ov-sub{color:#1d1d1f !important}
+body.v7-aether.coach-light .cal-t{color:var(--gold) !important}
+body.v7-aether.coach-light .cal-text{color:#6e6e73 !important}
+body.v7-aether.coach-light .ov-btn{
+  background:rgba(0,0,0,0.04) !important;color:#1d1d1f !important;
+  border:1px solid rgba(0,0,0,0.08) !important;
+}
+body.v7-aether.coach-light .ov-allow{background:#1d1d1f !important;color:#fff !important;border:none !important}
+body.v7-aether.coach-light #bl-st{color:#6e6e73 !important}
+body.v7-aether.coach-light #bl-karaoke-text{color:rgba(0,0,0,0.22) !important}
+body.v7-aether.coach-light #bl-karaoke-label{color:rgba(0,0,0,0.4) !important}
+body.v7-aether.coach-light #bl-karaoke-hint{color:rgba(0,0,0,0.3) !important}
+/* ── Toasts ── */
+body.v7-aether.coach-light .toast{
+  background:rgba(255,255,255,0.96) !important;color:#1d1d1f !important;
+  border:1px solid rgba(0,0,0,0.06) !important;
+  box-shadow:0 4px 16px rgba(0,0,0,0.08) !important;
+}
+/* ── Advanced mode — reveal hidden sections ── */
+body.v7-aether.coach-light.advanced #meta-bar{display:flex !important}
+body.v7-aether.coach-light.advanced #protocol-bar{display:flex !important}
+body.v7-aether.coach-light.advanced #research-ribbon{display:flex !important}
+body.v7-aether.coach-light.advanced #state-legend{display:grid !important}
+body.v7-aether.coach-light.advanced #v7-float-left,
+body.v7-aether.coach-light.advanced #v7-float-right{display:flex !important}
+body.v7-aether.coach-light.advanced #snr-badge,
+body.v7-aether.coach-light.advanced #qual-badge{display:flex !important}
+body.v7-aether.coach-light.advanced #meta-bar,
+body.v7-aether.coach-light.advanced #protocol-bar,
+body.v7-aether.coach-light.advanced #research-ribbon{
+  background:rgba(255,255,255,0.88) !important;
+  border-color:rgba(0,0,0,0.06) !important;
+  color:#1d1d1f !important;
+}
+body.v7-aether.coach-light.advanced #meta-bar select,
+body.v7-aether.coach-light.advanced #meta-bar input,
+body.v7-aether.coach-light.advanced #protocol-bar select,
+body.v7-aether.coach-light.advanced #protocol-bar button{
+  background:rgba(0,0,0,0.03) !important;color:#1d1d1f !important;
+  border:1px solid rgba(0,0,0,0.08) !important;
+}
+body.v7-aether.coach-light.advanced .meta-field span{color:#6e6e73 !important}
+body.v7-aether.coach-light.advanced .r-pill{
+  background:rgba(0,0,0,0.04) !important;color:#1d1d1f !important;
+  border:1px solid rgba(0,0,0,0.06) !important;
+}
+body.v7-aether.coach-light.advanced .e-chip{
+  background:rgba(200,149,46,0.12) !important;color:#8b6914 !important;
+  border:1px solid rgba(200,149,46,0.2) !important;
+}
+body.v7-aether.coach-light.advanced #state-legend{
+  background:rgba(255,255,255,0.88) !important;border-color:rgba(0,0,0,0.06) !important;
+}
+body.v7-aether.coach-light.advanced .sl-name{color:#1d1d1f !important}
+body.v7-aether.coach-light.advanced .sl-def{color:#6e6e73 !important}
+/* ── State key modal ── */
+body.v7-aether.coach-light #state-key{background:rgba(245,245,247,0.92) !important}
+body.v7-aether.coach-light #state-key-box{
+  background:#fff !important;color:#1d1d1f !important;
+  border:1px solid rgba(0,0,0,0.06) !important;
+  box-shadow:0 8px 40px rgba(0,0,0,0.1) !important;
+}
+body.v7-aether.coach-light #state-key-box h3{color:#1d1d1f !important}
+body.v7-aether.coach-light .sk-desc{color:#6e6e73 !important}
+/* ── Mobile coach-light overrides ── */
+@media(max-width:768px){
+  body.v7-aether.coach-light #hdr{height:44px !important;padding:0 10px !important}
+  body.v7-aether.coach-light #atlas-wrap{
+    width:min(300px,70vw) !important;height:min(300px,70vw) !important;
+  }
+  body.v7-aether.coach-light .sc-panel{
+    width:92vw !important;gap:6px !important;margin:8px auto 0 !important;
+  }
+  body.v7-aether.coach-light .sc{
+    padding:8px 4px !important;min-height:44px !important;border-radius:12px !important;
+  }
+  body.v7-aether.coach-light .sc-val{font-size:18px !important}
+  body.v7-aether.coach-light .sc-lbl{font-size:8px !important}
+  body.v7-aether.coach-light #interp{
+    margin:10px auto 8px !important;padding:16px 18px !important;
+    min-height:72px !important;border-radius:16px !important;width:92vw !important;
+  }
+  body.v7-aether.coach-light #interp-text{font-size:15px !important;line-height:1.5 !important}
+  body.v7-aether.coach-light .sb{
+    margin:16px !important;padding:36px 28px 32px !important;border-radius:22px !important;
+  }
+  body.v7-aether.coach-light .sb-title{font-size:28px !important}
+  body.v7-aether.coach-light .sb-text{font-size:14px !important}
+}
+@media(max-width:400px){
+  body.v7-aether.coach-light #atlas-wrap{
+    width:min(260px,72vw) !important;height:min(260px,72vw) !important;
+  }
+  body.v7-aether.coach-light .sc-val{font-size:16px !important}
+  body.v7-aether.coach-light #interp-text{font-size:14px !important}
 }
 </style>
 </head>
@@ -4529,7 +4822,7 @@ function applyUI(now,force){
   setStyleIfChanged(UI.phaseDot,'background',ph.c);
   setStyleIfChanged(UI.phaseName,'color',ph.c);
   setTextIfChanged(UI.phaseName,ph.n);
-  setTextIfChanged(UI.interpText,interpret());
+  setTextIfChanged(UI.interpText,(document.body.classList.contains('coach-light')&&typeof _interpretCoach==='function')?_interpretCoach():interpret());
   if(!demo&&micOn){
     setStyleIfChanged(UI.snr,'display','block');
     setTextIfChanged(UI.snr,'SNR '+curSNR.toFixed(0)+'dB');
@@ -4560,6 +4853,12 @@ function applyUI(now,force){
   for(var wi=0;wi<6;wi++)toggleClassIfNeeded(UI.scoreWraps[wi],'hi',wi===maxDI&&ready);
   var dcWrap=UI.scoreWraps[5];
   if(dcWrap)toggleClassIfNeeded(dcWrap,'alert',dD>20&&sWarm>(currentTaskType()==='free_speech'?45:90)); // FIX D: alert gate matches scoring gate
+  // Coach-light: set progress bar fills on score cards
+  if(document.body.classList.contains('coach-light')&&ready){
+    var _clrs=['#2da65d','#c48a1a','#c93d3d','#6868a0','#b85888','#c86020'];
+    var _vals=[dF,dL,dS,dFt,dG,dD];
+    for(var _ci=0;_ci<6;_ci++){if(UI.scoreWraps[_ci]){UI.scoreWraps[_ci].style.setProperty('--score-pct',Math.min(100,_vals[_ci])+'%');UI.scoreWraps[_ci].style.setProperty('--score-clr',_clrs[_ci]);}}
+  }
   if(UI.modelPill){
     var modelState=(researchDecisionState>=0&&researchDecisionState<CAL_STATE_NAMES.length)?CAL_STATE_NAMES[researchDecisionState]:'warming';
     var modelText=(researchDecisionState>=0?'Adaptive ensemble · '+modelState+' '+Math.round(safeNum(researchDecisionProb)*100)+'%':'Adaptive ensemble · warming');
@@ -4672,12 +4971,14 @@ function drawRingToCache(cX,cY,ringMid,ringSpan,ringInner,ringOuter,tensionRingR
       }
     }
     var headA0=RING_START+latestIdx*RING_SEG_ARC,headA1=headA0+RING_SEG_ARC*RING_FILL_FRAC;
+    var _lcRing=document.body.classList.contains('coach-light');
     ringOCx.beginPath();ringOCx.arc(cX,cY,ringOuter+2,headA0,headA1);
-    ringOCx.lineWidth=2;ringOCx.strokeStyle='rgba(255,255,255,0.28)';ringOCx.stroke();
+    ringOCx.lineWidth=2;ringOCx.strokeStyle=_lcRing?'rgba(0,0,0,0.18)':'rgba(255,255,255,0.28)';ringOCx.stroke();
   }
   // Static ring boundary circles
-  ringOCx.beginPath();ringOCx.arc(cX,cY,Math.max(1,ringInner),0,PI2);ringOCx.strokeStyle='rgba(255,255,255,0.04)';ringOCx.lineWidth=0.5;ringOCx.stroke();
-  ringOCx.beginPath();ringOCx.arc(cX,cY,Math.max(1,ringOuter),0,PI2);ringOCx.strokeStyle='rgba(255,255,255,0.04)';ringOCx.lineWidth=0.5;ringOCx.stroke();
+  var _lcRing2=document.body.classList.contains('coach-light');
+  ringOCx.beginPath();ringOCx.arc(cX,cY,Math.max(1,ringInner),0,PI2);ringOCx.strokeStyle=_lcRing2?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.04)';ringOCx.lineWidth=0.5;ringOCx.stroke();
+  ringOCx.beginPath();ringOCx.arc(cX,cY,Math.max(1,ringOuter),0,PI2);ringOCx.strokeStyle=_lcRing2?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.04)';ringOCx.lineWidth=0.5;ringOCx.stroke();
   ringNeedsRedraw=false;
 }
 
@@ -4692,6 +4993,7 @@ function drawViz(nowTs){
   var stClr=STATES[dispDomState].clr;
   var j,val,px,py;
   var isMobile=W<600;
+  var isLightCanvas=document.body.classList.contains('coach-light');
 
   // Tension glow (pulses at 60fps — stays on main canvas)
   if(renderTensionGlow>0.15){
@@ -4700,7 +5002,7 @@ function drawViz(nowTs){
     var glowWidth=6+renderTensionGlow*10;
     var pulse=0.84+0.16*Math.sin(nowTs*0.0032);
     cx.beginPath();cx.arc(cX,cY,glowR,0,PI2);
-    cx.strokeStyle='rgba(224,120,48,'+(glowAlpha*pulse).toFixed(3)+')';
+    cx.strokeStyle=isLightCanvas?'rgba(200,100,30,'+(glowAlpha*pulse*0.5).toFixed(3)+')':'rgba(224,120,48,'+(glowAlpha*pulse).toFixed(3)+')';
     cx.lineWidth=glowWidth;cx.stroke();
   }
 
@@ -4709,7 +5011,7 @@ function drawViz(nowTs){
   if(ringOC){cx.save();cx.setTransform(1,0,0,1,0,0);cx.drawImage(ringOC,0,0);cx.restore();}
 
   // Radar grid
-  cx.strokeStyle='rgba(255,255,255,0.05)';cx.lineWidth=0.5;
+  cx.strokeStyle=isLightCanvas?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.05)';cx.lineWidth=0.5;
   for(j=1;j<=4;j++){cx.beginPath();cx.arc(cX,cY,Math.max(1,radarR*j/4),0,PI2);cx.stroke();}
   for(j=0;j<NC;j++){
     cx.beginPath();cx.moveTo(cX,cY);cx.lineTo(cX+radarR*1.08*chCos[j],cY+radarR*1.08*chSin[j]);
@@ -4720,7 +5022,7 @@ function drawViz(nowTs){
   if(sWarm>30){cx.beginPath();
     for(j=0;j<NC;j++){var bR=Math.max(2,rMu[j]*radarR);px=cX+bR*chCos[j];py=cY+bR*chSin[j];
       if(j===0)cx.moveTo(px,py);else cx.lineTo(px,py);}
-    cx.closePath();cx.strokeStyle='rgba(255,255,255,0.12)';cx.lineWidth=1;cx.setLineDash([3,3]);cx.stroke();cx.setLineDash([]);}
+    cx.closePath();cx.strokeStyle=isLightCanvas?'rgba(0,0,0,0.12)':'rgba(255,255,255,0.12)';cx.lineWidth=1;cx.setLineDash([3,3]);cx.stroke();cx.setLineDash([]);}
 
   // Current radar polygon (60fps interpolated)
   cx.beginPath();
@@ -4766,12 +5068,12 @@ function drawViz(nowTs){
       textOCx.font='600 '+(isMobile?10:13)+'px ui-monospace, monospace';textOCx.fillStyle=stObj.clr+'99';
       textOCx.fillText(domScore+'%',cX,cY-3);
     }
-    if(curTextPHz>60&&pConf>0.4){textOCx.font='500 '+(isMobile?10:12)+'px ui-monospace, monospace';textOCx.fillStyle='rgba(226,221,210,0.45)';textOCx.fillText(curTextPHz.toFixed(0)+' Hz',cX,cY+10);}
+    if(curTextPHz>60&&pConf>0.4){textOCx.font='500 '+(isMobile?10:12)+'px ui-monospace, monospace';textOCx.fillStyle=isLightCanvas?'rgba(0,0,0,0.3)':'rgba(226,221,210,0.45)';textOCx.fillText(curTextPHz.toFixed(0)+' Hz',cX,cY+10);}
     var phObj=PHASES[cPh];textOCx.font='600 '+(isMobile?9:11)+'px system-ui';textOCx.fillStyle=phObj.c+'88';textOCx.fillText(phObj.n,cX,cY+23);
-    var qcClr=qualityScore>84?'#6bcc8f':qualityScore>68?'#d4a855':'#cc5555';
+    if(!isLightCanvas){var qcClr=qualityScore>84?'#6bcc8f':qualityScore>68?'#d4a855':'#cc5555';
     textOCx.font='500 '+(isMobile?8:10)+'px ui-monospace, monospace';textOCx.fillStyle=qcClr+'88';
-    textOCx.fillText('Q'+qualityScore+' · D'+confidenceScore,cX,cY+35);
-    if(covReady){textOCx.font='500 '+(isMobile?7:9)+'px system-ui';textOCx.fillStyle='#d4a85566';textOCx.fillText('WHT·PROJ',cX,cY+46);}
+    textOCx.fillText('Q'+qualityScore+' · D'+confidenceScore,cX,cY+35);}
+    if(covReady&&!isLightCanvas){textOCx.font='500 '+(isMobile?7:9)+'px system-ui';textOCx.fillStyle='#d4a85566';textOCx.fillText('WHT·PROJ',cX,cY+46);}
     lastTextState=dispDomState;lastTextDomScore=domScore;lastTextPHz=curTextPHz;lastTextQual=qualityScore;lastTextConf=confidenceScore;lastTextCovReady=covReady;lastTextSWarm=Math.round(sWarm);
     textNeedsRedraw=false;
   }
@@ -7334,6 +7636,129 @@ applyResearchEnsembleLive=function(featMap,baseState,baseSource,legacyName,legac
 function v7Boot(){ v7InjectUI(); v7InitProtoBank(); v7UpdateUI(performance.now()); }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',v7Boot);
 else v7Boot();
+})();
+
+/* ═══════════════════════════════════════════════════════════════════
+   COACH LIGHT MODE — Consumer-facing interpretation + boot
+   Reads scoring variables but NEVER writes to them.
+   ═══════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+
+// ── Coach interpretation helpers (one per state) ──
+function _coachClear(score){
+  if(score>70) return 'Your voice sounds confident and authoritative \u2014 this is your vocal sweet spot. Clear, steady delivery.';
+  if(score>40) return 'Good clarity in your voice. Steady pitch and even pacing \u2014 you\u2019re communicating well.';
+  return 'Your voice is relatively clear. A bit more projection could strengthen your delivery.';
+}
+function _coachActivated(score){
+  if(score>60) return 'You\u2019re bringing strong energy \u2014 great for emphasis, but consider a brief pause to let key points land.';
+  if(score>35) return 'Your voice has good energy and animation. This dynamic delivery keeps listeners engaged.';
+  return 'Elevated vocal energy detected. You\u2019re speaking with emphasis \u2014 powerful for important points.';
+}
+function _coachLoaded(score){
+  if(score>60) return 'You\u2019re working through complex ideas \u2014 your pauses and pace show it. Try simplifying your phrasing.';
+  if(score>35) return 'Your voice reflects thoughtful processing. Consider rehearsing this section for smoother delivery.';
+  return 'Some cognitive load showing in your speech. Natural for complex material \u2014 take your time.';
+}
+function _coachLowEnergy(score){
+  if(score>60) return 'Your energy is dropping noticeably. Try standing up, projecting more, or taking a quick breath reset.';
+  if(score>35) return 'Your voice has softened. If intentional, this creates intimacy. If not, try adding more vocal energy.';
+  return 'Lower energy detected in your delivery. A slight increase in volume and pace would help engagement.';
+}
+function _coachRestrained(score){
+  if(score>60) return 'You\u2019re holding your voice in a tight, controlled range. Try expanding your pitch on key words for more impact.';
+  if(score>35) return 'Controlled, measured delivery. Good for formal contexts \u2014 for warmth, try varying your tone more.';
+  return 'Your voice is somewhat restrained. Opening up your pitch range would add expressiveness.';
+}
+function _coachTense(score){
+  if(score>60) return 'Very precise delivery, but your voice sounds a bit tight. Relax your jaw and breathe \u2014 warmth will follow.';
+  if(score>35) return 'High precision in your speech. You\u2019re very controlled \u2014 a slightly looser delivery would sound more natural.';
+  return 'Elevated precision detected. This is common in formal reading \u2014 try a more conversational tone.';
+}
+
+// ── Main coach interpretation function ──
+// Reads: dispDomState, dispFocus, dispStress, dispLoad, dispFatigue, dispGuarded, dispTension,
+//        micOn, demo, unvoicedCount, raw, baselinePhase, sWarm, sm, lastRateMean, STATES
+// NEVER writes to any of these.
+window._interpretCoach = function(){
+  if(typeof micOn!=='undefined'&&!micOn&&typeof demo!=='undefined'&&!demo) return 'Tap the microphone to begin.';
+  if((typeof demo!=='undefined'&&demo||typeof unvoicedCount!=='undefined'&&unvoicedCount>15)&&typeof raw!=='undefined'&&raw[0]<0.05) return 'I\u2019m listening \u2014 start speaking whenever you\u2019re ready.';
+  if(typeof baselinePhase!=='undefined'&&baselinePhase) return 'Read the passage above at a comfortable pace. I\u2019m learning your voice.';
+  if(typeof sWarm!=='undefined'&&sWarm<35) return 'Getting to know your voice\u2026 '+Math.round(sWarm/0.35)+'% ready. Keep speaking naturally.';
+
+  var idx=typeof dispDomState!=='undefined'?dispDomState:0;
+  var scores=[
+    typeof dispFocus!=='undefined'?Math.round(dispFocus):0,
+    typeof dispStress!=='undefined'?Math.round(dispStress):0,
+    typeof dispLoad!=='undefined'?Math.round(dispLoad):0,
+    typeof dispFatigue!=='undefined'?Math.round(dispFatigue):0,
+    typeof dispGuarded!=='undefined'?Math.round(dispGuarded):0,
+    typeof dispTension!=='undefined'?Math.round(dispTension):0
+  ];
+
+  var fns=[_coachClear,_coachActivated,_coachLoaded,_coachLowEnergy,_coachRestrained,_coachTense];
+  var main=(idx>=0&&idx<6)?fns[idx](scores[idx]):'Analyzing your voice\u2026';
+
+  // Rate coaching
+  try{
+    var rateRef=typeof lastRateMean!=='undefined'?lastRateMean:0;
+    if(typeof sm!=='undefined'&&rateRef>0){
+      if(sm[2]<rateRef*0.82) main+=' You\u2019re slowing down \u2014 good for emphasis, but watch your energy.';
+      else if(sm[2]>rateRef*1.18) main+=' You\u2019re speeding up \u2014 try pausing on key points to let them land.';
+    }
+  }catch(e){}
+
+  return main;
+};
+
+// ── Coach boot: activate light theme, modify start screen, add toggle ──
+function coachBoot(){
+  document.body.classList.add('coach-light');
+
+  // Rewrite start screen for consumers
+  var sbTitle=document.querySelector('.sb-title');
+  var sbText=document.querySelector('.sb-text');
+  var sbGo=document.querySelector('.sb-go');
+  var sbBrand=document.querySelector('.sb-brand');
+  if(sbBrand)sbBrand.textContent='CHORUS';
+  if(sbTitle)sbTitle.textContent='Voice Coach';
+  if(sbText)sbText.innerHTML='Real-time vocal coaching powered by acoustic science.<br><br>CHORUS listens to your voice and gives you <strong>instant feedback</strong> on clarity, energy, pace, and vocal variety.<br><br>All analysis runs <strong>locally on your device</strong> \u2014 nothing is recorded unless you choose to.';
+  if(sbGo)sbGo.textContent='Start Coaching';
+
+  // Rewrite mic overlay for consumers
+  var ovT=document.querySelector('#mic-ov .ov-t');
+  var ovSub=document.querySelector('#mic-ov .ov-sub');
+  if(ovT)ovT.textContent='Microphone Access';
+  if(ovSub)ovSub.innerHTML='CHORUS needs your microphone to analyze your voice in real time.<br><br>All audio processing happens <strong>locally in your browser</strong>. No audio leaves your device unless you press Record.';
+
+  // Add Advanced toggle button to header
+  var hr=document.querySelector('.hr');
+  if(hr){
+    var advBtn=document.createElement('button');
+    advBtn.className='hbtn';
+    advBtn.id='adv-toggle';
+    advBtn.textContent='\u2699';
+    advBtn.title='Toggle Advanced View';
+    advBtn.style.cssText='font-size:14px;width:28px;min-width:28px;padding:0;opacity:0.5';
+    advBtn.onclick=function(){
+      document.body.classList.toggle('advanced');
+      advBtn.style.opacity=document.body.classList.contains('advanced')?'1':'0.5';
+      try{localStorage.setItem('chorus_adv',document.body.classList.contains('advanced')?'1':'0');}catch(e){}
+    };
+    hr.appendChild(advBtn);
+    // Restore preference
+    try{if(localStorage.getItem('chorus_adv')==='1'){document.body.classList.add('advanced');advBtn.style.opacity='1';}}catch(e){}
+  }
+
+  // Update VPD toggle label for consumers
+  var vpdLabel=document.getElementById('vpd-toggle-label');
+  if(vpdLabel)vpdLabel.textContent='Vocal Insights';
+}
+
+// Boot after v7
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',coachBoot);
+else setTimeout(coachBoot,0);
 })();
 </script>
 <script>
