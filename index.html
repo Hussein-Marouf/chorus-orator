@@ -708,6 +708,19 @@ body.v7-aether .sc-unit{
 @media(max-width:900px){#vpd-inner{grid-template-columns:1fr 1fr}}
 @media(max-width:550px){#vpd-inner{grid-template-columns:1fr}#vpd-panel.on{max-height:400px}}
 
+/* ═══ BASELINE KARAOKE ═══ */
+#bl-ov .ov-box{max-width:560px;max-height:90vh;overflow-y:auto}
+#bl-karaoke{padding:16px 20px;text-align:center;max-width:540px;margin:0 auto}
+#bl-karaoke-label{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:12px;font-family:'JetBrains Mono',monospace}
+#bl-karaoke-text{font-size:19px;line-height:1.65;font-family:'DM Sans',sans-serif;color:rgba(255,255,255,0.35);transition:opacity 0.3s}
+#bl-karaoke-text .bl-word{display:inline;transition:color 0.25s,text-shadow 0.25s;padding:0 1px}
+#bl-karaoke-text .bl-word.done{color:rgba(255,255,255,0.50)}
+#bl-karaoke-text .bl-word.active{color:#fff;text-shadow:0 0 12px rgba(212,175,55,0.5)}
+#bl-karaoke-text .bl-word.active::after{content:'';display:inline}
+#bl-karaoke-hint{font-size:10px;color:rgba(255,255,255,0.30);margin-top:14px;font-family:'JetBrains Mono',monospace}
+#bl-karaoke-pace{display:inline-block;width:6px;height:6px;border-radius:50%;background:#d4af37;margin-left:6px;animation:blPulse 0.46s ease-in-out infinite alternate;vertical-align:middle}
+@keyframes blPulse{0%{opacity:0.4;transform:scale(0.85)}100%{opacity:1;transform:scale(1.15)}}
+
 /* ═══ MOBILE RESPONSIVE ═══ */
 @media (max-width:768px){
   /* Allow scrolling */
@@ -751,6 +764,11 @@ body.v7-aether .sc-unit{
   /* State name in radar center */
   body.v7-aether #v7-state-name{font-size:20px !important}
   body.v7-aether #v7-state-subtitle{font-size:8px !important}
+  /* Karaoke mobile */
+  #bl-karaoke{padding:10px 12px}
+  #bl-karaoke-text{font-size:15px;line-height:1.55}
+  #bl-karaoke-label{font-size:9px;margin-bottom:8px}
+  #bl-karaoke-hint{font-size:8px;margin-top:8px}
 }
 @media (max-width:400px){
   body.v7-aether #atlas-wrap{height:50vw;max-height:280px}
@@ -774,7 +792,7 @@ body.v7-aether .sc-unit{
 </div></div>
 <div id="mic-ov"><div class="ov-box"><div class="ov-t">Microphone</div><div class="ov-sub">Audio analysis runs locally in this page. No audio leaves your device unless you press Record. (Fonts load from Google Fonts on first visit.)<br><br>Live mode uses a robust quiet-room calibration and a guided voice baseline before scoring. Using the same short phrase each session improves comparability.</div><button class="ov-btn ov-allow" onclick="reqMic()">Allow Microphone</button><button class="ov-btn ov-demo" onclick="goDemo()">Demo Mode</button></div></div>
 <div id="cal-ov"><div class="ov-box"><div class="cal-t">Calibrating&hellip;</div><div class="cal-text">Stay quiet for a few seconds.<br>Learning your room's noise floor before voice baseline.</div><div id="cal-bar"><div id="cal-fill"></div></div><div id="cal-st">Listening&hellip;</div></div></div>
-<div id="bl-ov"><div class="ov-box"><div class="cal-t">Voice Baseline</div><div class="cal-text">Speak naturally for a moment &mdash; read aloud, count,<br>or repeat the same short phrase you will use in future sessions.<br>This anchors a within-session reference before scoring begins.</div><div id="bl-bar"><div id="bl-fill"></div></div><div id="bl-st">Listening for your voice&hellip;</div><div id="bl-skip" style="display:none;margin-top:14px"><button class="ov-btn ov-demo" onclick="skipBaseline()" style="padding:8px 20px;font-size:12px">Skip &mdash; results may settle more slowly</button></div></div></div>
+<div id="bl-ov"><div class="ov-box"><div class="cal-t">Voice Baseline</div><div class="cal-text">Read the passage below at the highlighted pace.<br>This anchors your vocal baseline before scoring begins.</div><div id="bl-bar"><div id="bl-fill"></div></div><div id="bl-st">Listening for your voice&hellip;</div><div id="bl-karaoke"><div id="bl-karaoke-label">Read along at the highlighted pace<span id="bl-karaoke-pace"></span></div><div id="bl-karaoke-text"></div><div id="bl-karaoke-hint">This passage calibrates your full vocal range</div></div><div id="bl-skip" style="display:none;margin-top:14px"><button class="ov-btn ov-demo" onclick="skipBaseline()" style="padding:8px 20px;font-size:12px">Skip &mdash; results may settle more slowly</button></div></div></div>
 <div id="state-key"><div id="state-key-box">
   <h3>Vocal Profile States</h3>
   <div class="sk-row"><div class="sk-dot" style="background:#6bcc8f"></div><div class="sk-name" style="color:#6bcc8f">CLEAR</div><div class="sk-desc">Regular pitch trajectory, consistent amplitude, moderate pace — your steadiest, most controlled delivery relative to baseline. (F0Stab/AmpStab are 30 Hz frame-level consistency proxies, not cycle-accurate perturbation measures.)</div></div>
@@ -1063,6 +1081,153 @@ for(i=0;i<RING_MAX;i++){ringHist[i]={ch:new Float32Array(NC),state:6,stress:0,lo
 var chCos=new Float32Array(NC), chSin=new Float32Array(NC);
 for(i=0;i<NC;i++){var ca=-Math.PI/2+i*PI2/NC;chCos[i]=Math.cos(ca);chSin[i]=Math.sin(ca);}
 var PHASE_HIST_MAX=240;
+
+// ═══════════════════════════════════════════════════════════════════
+// BASELINE KARAOKE ENGINE
+// Guided reading during voice baseline — standardizes calibration.
+// ═══════════════════════════════════════════════════════════════════
+var BLK = {
+  // Phonetically balanced passage: declarative → interrogative → list → reflective.
+  // ~44 words, ~20s at 130 WPM. Covers falling pitch, rising pitch, pauses, low register.
+  SCRIPT: 'The morning air feels cool and steady as the sun begins to rise. ' +
+          'Have you ever noticed how the light changes everything around you? ' +
+          'Colors shift from deep blue, to amber, to gold, each one warmer than the last. ' +
+          'Sometimes the quietest moments carry the most meaning.',
+  WPM: 130,           // target words per minute
+  wordEls: [],        // DOM span references
+  wordIdx: -1,        // current highlighted word (-1 = not started)
+  startT: 0,          // performance.now() when karaoke began
+  msPerWord: 0,       // computed from WPM
+  active: false,      // is karaoke running
+  loopCount: 0,       // how many times the script has looped
+  el: null,           // #bl-karaoke element
+  textEl: null,       // #bl-karaoke-text element
+  voiceDetected: false // has voice been detected (delays start until user speaks)
+};
+BLK.msPerWord = Math.round(60000 / BLK.WPM); // ~461ms per word at 130 WPM
+
+function initBaselineKaraoke() {
+  BLK.el = document.getElementById('bl-karaoke');
+  BLK.textEl = document.getElementById('bl-karaoke-text');
+  if (!BLK.el || !BLK.textEl) return;
+
+  // Split script into word spans
+  var words = BLK.SCRIPT.split(/\s+/);
+  var html = '';
+  for (var i = 0; i < words.length; i++) {
+    html += '<span class="bl-word" data-i="' + i + '">' + words[i] + ' </span>';
+  }
+  BLK.textEl.innerHTML = html;
+  BLK.wordEls = BLK.textEl.querySelectorAll('.bl-word');
+  BLK.wordIdx = -1;
+  BLK.startT = 0;
+  BLK.active = false;
+  BLK.loopCount = 0;
+  BLK.voiceDetected = false;
+}
+
+function tickBaselineKaraoke(now) {
+  // Use global baselinePhase instead of BLK.active (which can be reset by startSess)
+  if (!baselinePhase) return;
+
+  // Lazy-init: ensure word spans exist (handles race with startSess)
+  if (!BLK.wordEls || BLK.wordEls.length === 0) {
+    var te = document.getElementById('bl-karaoke-text');
+    if (te && te.children.length === 0) {
+      var words = BLK.SCRIPT.split(/\s+/);
+      var h = '';
+      for (var i = 0; i < words.length; i++) h += '<span class="bl-word" data-i="'+i+'">'+words[i]+' </span>';
+      te.innerHTML = h;
+    }
+    if (te) BLK.wordEls = te.querySelectorAll('.bl-word');
+    if (!BLK.wordEls || BLK.wordEls.length === 0) return;
+  }
+
+  // Phase 1: Countdown (3-2-1-Read)
+  if (!BLK.voiceDetected) {
+    if (!BLK.countdownStartT) BLK.countdownStartT = now;
+    var cdElapsed = now - BLK.countdownStartT;
+    var cdSec = Math.floor(cdElapsed / 1000);
+    var label = document.getElementById('bl-karaoke-label');
+    if (label) {
+      if (cdSec < 1) label.innerHTML = '<span style="font-size:18px;color:#d4af37">3</span>&ensp;Get ready\u2026';
+      else if (cdSec < 2) label.innerHTML = '<span style="font-size:18px;color:#d4af37">2</span>&ensp;Get ready\u2026';
+      else if (cdSec < 3) label.innerHTML = '<span style="font-size:18px;color:#d4af37">1</span>&ensp;Get ready\u2026';
+      else {
+        label.innerHTML = '\u25B6 Read now \u2014 follow the gold highlight';
+        BLK.voiceDetected = true;
+        BLK.startT = now;
+        BLK.wordIdx = -1;
+      }
+    } else {
+      if (cdElapsed >= 3000) { BLK.voiceDetected = true; BLK.startT = now; BLK.wordIdx = -1; }
+    }
+    return;
+  }
+
+  // Phase 2: Word-by-word highlight
+  var elapsed = now - BLK.startT;
+  var targetIdx = Math.floor(elapsed / BLK.msPerWord);
+
+  if (targetIdx >= BLK.wordEls.length) {
+    BLK.loopCount++;
+    BLK.startT = now;
+    targetIdx = 0;
+    for (var i = 0; i < BLK.wordEls.length; i++) BLK.wordEls[i].style.cssText = '';
+    BLK.wordIdx = -1;
+  }
+
+  if (targetIdx !== BLK.wordIdx) {
+    // Clear previous
+    if (BLK.wordIdx >= 0 && BLK.wordIdx < BLK.wordEls.length) {
+      BLK.wordEls[BLK.wordIdx].style.cssText = 'color:rgba(255,255,255,0.55)';
+    }
+    // Highlight current with inline style (bypasses any CSS specificity issues)
+    if (targetIdx >= 0 && targetIdx < BLK.wordEls.length) {
+      BLK.wordEls[targetIdx].style.cssText = 'color:#fff;text-shadow:0 0 14px rgba(212,175,55,0.6)';
+    }
+    BLK.wordIdx = targetIdx;
+  }
+}
+
+function startBaselineKaraoke() {
+  if (!BLK.el) initBaselineKaraoke();
+  if (!BLK.el) return;
+  BLK.active = true;
+  BLK.voiceDetected = false;
+  BLK.countdownStartT = 0; // will be set on first tick
+  BLK.wordIdx = -1;
+  BLK.loopCount = 0;
+  // Force word spans to exist
+  if (!BLK.wordEls || BLK.wordEls.length === 0) {
+    if (BLK.textEl) {
+      var words = BLK.SCRIPT.split(/\s+/);
+      var html = '';
+      for (var i = 0; i < words.length; i++) {
+        html += '<span class="bl-word" data-i="' + i + '">' + words[i] + ' </span>';
+      }
+      BLK.textEl.innerHTML = html;
+      BLK.wordEls = BLK.textEl.querySelectorAll('.bl-word');
+    }
+  }
+}
+
+function stopBaselineKaraoke() {
+  BLK.active = false;
+}
+
+function resetBaselineKaraoke() {
+  stopBaselineKaraoke();
+  BLK.wordIdx = -1;
+  BLK.loopCount = 0;
+  BLK.startT = 0;
+  BLK.voiceDetected = false;
+  if (BLK.textEl) {
+    for (var i = 0; i < BLK.wordEls.length; i++) {
+      BLK.wordEls[i].classList.remove('done', 'active');
+    }
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // VOCAL PATTERN DIAGNOSTICS ENGINE (VPD)
@@ -1546,6 +1711,7 @@ var UI={
   scoreWraps:[document.getElementById('sc-fo-wrap'),document.getElementById('sc-cl-wrap'),document.getElementById('sc-st-wrap'),document.getElementById('sc-ft-wrap'),document.getElementById('sc-gu-wrap'),document.getElementById('sc-dc-wrap')],
   blOv:document.getElementById('bl-ov'), blFill:document.getElementById('bl-fill'), blStatus:document.getElementById('bl-st'), blSkip:document.getElementById('bl-skip')
 };
+initBaselineKaraoke(); // cache karaoke DOM elements
 var W=2, H=2, DPR=1;
 var lastDomUpdate=0, DOM_INTERVAL=1000/CFG.DOM_HZ;
 var tickTimerId=null, rafId=0, calTimerId=null, calDoneTimer=null;
@@ -2621,6 +2787,7 @@ function beginBaselinePhase(){
   baselineStartT=performance.now();
   resetBaselineOverlayUI();
   if(UI.blOv)UI.blOv.classList.add('show');
+  startBaselineKaraoke(); // start guided reading
   startSess(true);
 }
 function resetPostBaseline(){
@@ -2649,6 +2816,7 @@ function resetPostBaseline(){
   lastDomUpdate=0;
 }
 function finishBaselinePhase(){
+  stopBaselineKaraoke(); // stop guided reading
   lockBaselineReference(true);
   baselinePhase=false;
   if(UI.blOv)UI.blOv.classList.remove('show');
@@ -2673,6 +2841,7 @@ function updateBaselineOverlay(now){
     else if(!baselineModelReady())UI.blStatus.textContent='Finishing statistical model…';
     else UI.blStatus.textContent='Baseline ready — anchoring reference.';
   }
+  tickBaselineKaraoke(now); // advance karaoke highlight
   if(UI.blSkip&&blElapsed>=BL_SKIP_DELAY_MS)UI.blSkip.style.display='block';
   // A10: hard 90s auto-complete — prevents indefinite hang for quiet/noisy environments
   if(blElapsed>=BL_HARD_TIMEOUT_MS){showToast('Baseline timed out — using available data. Results may settle more slowly.',true,5000);finishBaselinePhase();return;} // CP2: 120s
@@ -3269,6 +3438,7 @@ function resetSessionMetrics(){
   chAccumVoiced=new Float64Array(NC);chAccumVoicedCount=0;
   lastRingSampleAt=0;
   VPD.reset(); _vpdFirstDataFired=false; // reset diagnostics buffer on session reset
+  resetBaselineKaraoke(); // reset guided reading state
   if(VPDUI.toggle)toggleClassIfNeeded(VPDUI.toggle,'has-data',false);
   if(VPDUI.toggle)toggleClassIfNeeded(VPDUI.toggle,'open',false);
   if(VPDUI.panel)toggleClassIfNeeded(VPDUI.panel,'on',false);
