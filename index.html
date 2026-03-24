@@ -875,13 +875,15 @@ body.v7-aether.coach-light #interp{
   background:#ffffff !important;border:1px solid rgba(0,0,0,0.05) !important;
   border-radius:20px !important;margin:16px auto 12px !important;
   box-shadow:0 2px 16px rgba(0,0,0,0.05) !important;
-  min-height:90px !important;padding:20px 28px !important;
+  height:140px !important;min-height:0 !important;max-height:140px !important;
+  padding:20px 28px !important;overflow:hidden !important;
   width:min(480px,92vw) !important;order:4 !important;
 }
 body.v7-aether.coach-light #interp-text{
-  font-size:18px !important;line-height:1.6 !important;color:#1d1d1f !important;
+  font-size:16px !important;line-height:1.55 !important;color:#1d1d1f !important;
   font-family:'DM Sans',sans-serif !important;font-weight:400 !important;
-  -webkit-line-clamp:6 !important;
+  -webkit-line-clamp:4 !important;
+  transition:opacity 0.3s ease !important;
 }
 body.v7-aether.coach-light #phase-row{margin-bottom:6px !important}
 body.v7-aether.coach-light #phase-name{
@@ -1052,7 +1054,8 @@ body.v7-aether.coach-light .sk-desc{color:#6e6e73 !important}
   body.v7-aether.coach-light .sc-lbl{font-size:8px !important}
   body.v7-aether.coach-light #interp{
     margin:10px auto 8px !important;padding:16px 18px !important;
-    min-height:72px !important;border-radius:16px !important;width:92vw !important;
+    height:120px !important;min-height:0 !important;max-height:120px !important;
+    border-radius:16px !important;width:92vw !important;overflow:hidden !important;
   }
   body.v7-aether.coach-light #interp-text{font-size:15px !important;line-height:1.5 !important}
   body.v7-aether.coach-light .sb{
@@ -4822,7 +4825,18 @@ function applyUI(now,force){
   setStyleIfChanged(UI.phaseDot,'background',ph.c);
   setStyleIfChanged(UI.phaseName,'color',ph.c);
   setTextIfChanged(UI.phaseName,ph.n);
-  setTextIfChanged(UI.interpText,(document.body.classList.contains('coach-light')&&typeof _interpretCoach==='function')?_interpretCoach():interpret());
+  // Debounce interpretation text to prevent flicker (update every 2s in coach mode)
+  if(!window._interpLastT)window._interpLastT=0;
+  if(!window._interpCache)window._interpCache='';
+  var _isCoach=document.body.classList.contains('coach-light');
+  if(now-window._interpLastT>2000||!_isCoach){
+    var _newInterp=(_isCoach&&typeof _interpretCoach==='function')?_interpretCoach():interpret();
+    if(_newInterp!==window._interpCache){
+      window._interpCache=_newInterp;
+      window._interpLastT=now;
+      setTextIfChanged(UI.interpText,_newInterp);
+    }
+  }
   if(!demo&&micOn){
     setStyleIfChanged(UI.snr,'display','block');
     setTextIfChanged(UI.snr,'SNR '+curSNR.toFixed(0)+'dB');
