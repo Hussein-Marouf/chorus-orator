@@ -1110,7 +1110,7 @@ var VPD = {
       name:'High Vocal Inertia',
       // Inertia >0.60 (kappa-corrected) means state persistence well above chance.
       // Requires 2× minimum samples to avoid false positives on short windows.
-      test:function(v){return v.inertia>0.60 && v.buf.length>=v.MIN_SAMPLES*2;},
+      test:function(v){return v.inertia>0.75 && v.buf.length>=v.MIN_SAMPLES*2;},
       insight:function(v){
         var topSt=0,topPct=0;for(var i=0;i<6;i++)if(v.statePct[i]>topPct){topPct=v.statePct[i];topSt=i;}
         return '<strong>High vocal inertia ('+v.inertia.toFixed(2)+').</strong> Your voice is staying locked in '+STATES[topSt].name+' with few transitions. Research links sustained high inertia to reduced emotional flexibility and lower well-being (Kuppens et al. 2010, <em>Psychological Science</em>). Consider varying your pace, pitch, or energy to introduce natural vocal contrast.';
@@ -1177,7 +1177,7 @@ var VPD = {
       name:'Confident Delivery',
       // Inertia 0.15-0.50 (kappa-corrected): moderately persistent but not rigid.
       // MSSD <0.35: <35% of consecutive pairs differ — stable transitions.
-      test:function(v){return v.statePct[0]>0.45 && v.inertia>=0.15 && v.inertia<=0.50 && v.mssd<0.35;},
+      test:function(v){return v.statePct[0]>0.35 && v.inertia>=0.10 && v.inertia<=0.65 && v.mssd<0.40;},
       insight:function(v){
         return '<strong>Confident, regulated delivery.</strong> CLEAR dominance ('+Math.round(v.statePct[0]*100)+'%) with moderate inertia ('+v.inertia.toFixed(2)+') indicates steady, authoritative vocal output. Falling intonation patterns and stable HNR are the top perceptual cues of speaker confidence (Vaughan-Johnston et al. 2024, <em>PSPB</em>). This is your vocal sweet spot.';
       },
@@ -1189,7 +1189,7 @@ var VPD = {
       // Variability (entropy) 0.35-0.75: multiple states active but not chaotic.
       test:function(v){
         var engaged=v.statePct[0]+v.statePct[1]; // CLEAR + ACTIVATED
-        return engaged>0.55 && v.switchRate>=4 && v.switchRate<=10 && v.variability>0.35 && v.variability<0.75;
+        return engaged>0.45 && v.switchRate>=3 && v.switchRate<=12 && v.variability>0.25 && v.variability<0.80;
       },
       insight:function(v){
         return '<strong>Dynamic, engaging vocal pattern.</strong> Your mix of CLEAR and ACTIVATED states ('+Math.round((v.statePct[0]+v.statePct[1])*100)+'%) with moderate transition rate ('+v.switchRate.toFixed(0)+'/min) mirrors the profile of charismatic speakers \u2014 wide pitch range with contextual variation (Niebuhr et al. 2019, <em>PMC</em>). Audiences show ~30% higher engagement with this dynamic delivery style.';
@@ -1211,7 +1211,7 @@ var VPD = {
       name:'Healthy Vocal Flexibility',
       // Inertia 0.15-0.45, MSSD 0.15-0.45, switch rate 3-8: the "Goldilocks zone."
       test:function(v){
-        return v.inertia>=0.15 && v.inertia<=0.45 && v.mssd>=0.15 && v.mssd<=0.45 && v.switchRate>=3 && v.switchRate<=8;
+        return v.inertia>=0.10 && v.inertia<=0.55 && v.mssd>=0.10 && v.mssd<=0.50 && v.switchRate>=2 && v.switchRate<=12;
       },
       insight:function(v){
         var states=[];for(var i=0;i<6;i++)if(v.statePct[i]>0.10)states.push(STATES[i].name);
@@ -1349,9 +1349,13 @@ var VPD = {
         }
       } catch(e) {}
     }
+    // Priority: alerts always win, but 'good' patterns beat generic warns
+    // because positive diagnostic feedback is more actionable than "high inertia"
+    // when the user IS performing well (e.g., steady CLEAR = confident, not "stuck").
+    var genericWarns = ['high_inertia','monotone_flat']; // warns that good patterns should override
     if (alertPats.length > 0) matched = alertPats[0];
+    else if (goodPats.length > 0) matched = goodPats[0]; // good beats warn
     else if (warnPats.length > 0) matched = warnPats[0];
-    else if (goodPats.length > 0) matched = goodPats[0];
 
     if (matched) {
       try {
