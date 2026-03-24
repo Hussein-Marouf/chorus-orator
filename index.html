@@ -1267,9 +1267,16 @@ var VPD = {
     //   inertia_null = Σ p_i²  (expected under random assignment)
     //   inertia = (raw - null) / (1 - null)  [Cohen's kappa-style correction]
     // This yields 0 = chance-level persistence, 1 = perfect rigidity, <0 = anti-persistence
-    var samePairs = 0;
-    for (var i = 1; i < n; i++) { if (win[i].state === win[i - 1].state) samePairs++; }
-    var rawInertia = (n > 1) ? samePairs / (n - 1) : 0;
+    // Subsample at ~1Hz for inertia calculation to avoid inflation from 4Hz sampling.
+    // At 4Hz, even a 3-second state creates 12 identical consecutive pairs, inflating
+    // inertia even when the speaker IS varying. 1Hz spacing captures macro-transitions.
+    var INERTIA_STEP = Math.max(1, Math.round(4)); // ~1Hz from 4Hz stream
+    var samePairs = 0, sPairCount = 0;
+    for (var i = INERTIA_STEP; i < n; i += INERTIA_STEP) {
+      if (win[i].state === win[i - INERTIA_STEP].state) samePairs++;
+      sPairCount++;
+    }
+    var rawInertia = (sPairCount > 0) ? samePairs / sPairCount : 0;
     var nullInertia = 0;
     for (var i = 0; i < 6; i++) nullInertia += this.statePct[i] * this.statePct[i];
     this.inertia = (1 - nullInertia) > 0.001 ? Math.max(0, Math.min(1, (rawInertia - nullInertia) / (1 - nullInertia))) : rawInertia;
