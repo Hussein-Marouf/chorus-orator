@@ -130,6 +130,7 @@ canvas#cv{position:absolute;top:0;left:0}
   flex-shrink:0;flex-grow:0;height:54px;
   display:flex;align-items:center;
   background:linear-gradient(180deg,rgba(13,16,27,0.88),rgba(9,12,22,0.96));backdrop-filter:blur(16px);border-top:1px solid rgba(255,255,255,0.05);overflow:hidden;box-shadow:0 -14px 28px rgba(0,0,0,0.16);
+  margin-bottom:4px;
 }
 #interp-main{flex:1;padding:4px 14px;min-width:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden;max-width:100%}
 #phase-row{display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-shrink:0}
@@ -777,118 +778,158 @@ body.v7-aether .sc-unit{
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   COACH LIGHT THEME — Consumer-facing clean light mode
-   Layers on top of body.v7-aether without removing it.
-   All scoring/calibration logic is untouched — this is purely visual.
+   ORATOR BREATHE THEME v7.3.0 — Mindful companion + progressive disclosure
+   Layers on body.v7-aether. Ambient orb, narrative interpretation,
+   smooth state morphing. Research mode one toggle away.
    ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Breathe keyframes ── */
+@keyframes orbBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.012)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes cardReveal{from{opacity:0;transform:translateY(6px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes stateGlow{0%,100%{box-shadow:0 0 24px var(--state-glow,rgba(107,204,143,0.12))}50%{box-shadow:0 0 48px var(--state-glow,rgba(107,204,143,0.22))}}
+@keyframes insightFade{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:translateX(0)}}
+@keyframes depthPulse{0%,100%{opacity:0.5}50%{opacity:0.8}}
+
 body.v7-aether.coach-light{
-  --bg:#f5f5f7;--tx:#1d1d1f;--tx2:#6e6e73;--tx3:#aeaeb2;
+  --bg:#fafafa;--tx:#1a1a2e;--tx2:#5a5a72;--tx3:#9e9eb0;
   --gold:#c8952e;--violet:#7b61c2;--red:#c93d3d;--green:#2da65d;--teal:#4a9fb5;
-  background:#f5f5f7 !important;color:#1d1d1f !important;
+  --card:#ffffff;--card-border:rgba(0,0,0,0.04);--card-shadow:0 2px 20px rgba(0,0,0,0.04);
+  --surface:rgba(255,255,255,0.92);--breathe-dur:4.5s;
+  background:linear-gradient(168deg,#fafafa 0%,#f0f0f5 50%,#f5f3ef 100%) !important;
+  background-attachment:fixed !important;
+  color:#1a1a2e !important;
   overflow-y:auto !important;-webkit-overflow-scrolling:touch !important;
 }
 body.v7-aether.coach-light #app{
   overflow-y:auto !important;-webkit-overflow-scrolling:touch !important;
-  align-items:center !important;
+  align-items:center !important;gap:0 !important;
 }
-/* ── Header: minimal, premium ── */
+/* ── Header: whisper-thin, disappears into content ── */
 body.v7-aether.coach-light #hdr{
-  background:rgba(255,255,255,0.96) !important;backdrop-filter:blur(20px) saturate(1.2) !important;
-  border-bottom:1px solid rgba(0,0,0,0.05) !important;box-shadow:none !important;
-  height:48px !important;padding:0 16px !important;
+  background:var(--surface) !important;backdrop-filter:blur(24px) saturate(1.3) !important;
+  border-bottom:1px solid rgba(0,0,0,0.03) !important;box-shadow:none !important;
+  height:44px !important;padding:0 20px !important;
+  transition:all 0.3s ease !important;
 }
-body.v7-aether.coach-light #hdr .brand{color:#1d1d1f !important;font-size:14px !important}
-body.v7-aether.coach-light #hdr .brand b{color:var(--gold) !important}
+body.v7-aether.coach-light #hdr .brand,
+body.v7-aether.coach-light #hdr .h-brand{color:#1a1a2e !important;font-size:13px !important;font-weight:500 !important;letter-spacing:0.02em !important}
+body.v7-aether.coach-light #hdr .brand b,
+body.v7-aether.coach-light #hdr .h-brand b{color:var(--gold) !important}
 body.v7-aether.coach-light .hbtn{
-  background:transparent !important;color:#1d1d1f !important;
-  border:1px solid rgba(0,0,0,0.10) !important;border-radius:10px !important;
-  font-size:10px !important;padding:4px 10px !important;font-weight:500 !important;
-  transition:all 0.15s ease !important;
+  background:transparent !important;color:#5a5a72 !important;
+  border:1px solid rgba(0,0,0,0.06) !important;border-radius:10px !important;
+  font-size:10px !important;padding:5px 12px !important;font-weight:500 !important;
+  transition:all 0.25s cubic-bezier(0.4,0,0.2,1) !important;
 }
-body.v7-aether.coach-light .hbtn:hover{background:rgba(0,0,0,0.04) !important}
-body.v7-aether.coach-light .hbtn-mark{color:var(--gold) !important;border-color:rgba(200,149,46,0.3) !important}
-body.v7-aether.coach-light .hbtn-rec{color:var(--red) !important;border-color:rgba(201,61,61,0.3) !important}
-body.v7-aether.coach-light .hbtn-rpt{color:var(--violet) !important;border-color:rgba(123,97,194,0.3) !important}
-body.v7-aether.coach-light .hbtn-exp{color:var(--teal) !important;border-color:rgba(74,159,181,0.3) !important}
-body.v7-aether.coach-light #tmr{color:#aeaeb2 !important;font-size:13px !important}
+body.v7-aether.coach-light .hbtn:hover{background:rgba(0,0,0,0.03) !important;transform:translateY(-0.5px) !important}
+body.v7-aether.coach-light .hbtn-mark{color:var(--gold) !important;border-color:rgba(200,149,46,0.2) !important}
+body.v7-aether.coach-light .hbtn-rec{color:var(--red) !important;border-color:rgba(201,61,61,0.2) !important}
+body.v7-aether.coach-light .hbtn-rpt{color:var(--violet) !important;border-color:rgba(123,97,194,0.2) !important}
+body.v7-aether.coach-light .hbtn-exp{color:var(--teal) !important;border-color:rgba(74,159,181,0.2) !important}
+body.v7-aether.coach-light #tmr{color:#9e9eb0 !important;font-size:12px !important;font-weight:400 !important}
 body.v7-aether.coach-light .md{border-color:var(--green) !important}
 body.v7-aether.coach-light .live-dot{background:var(--green) !important;color:var(--green) !important}
-body.v7-aether.coach-light .gw{display:none !important} /* hide gain slider for consumers */
+body.v7-aether.coach-light .gw{display:none !important}
 /* ── Meta & Protocol bars — hidden by default ── */
 body.v7-aether.coach-light #meta-bar,
 body.v7-aether.coach-light #protocol-bar,
 body.v7-aether.coach-light #protocol-step,
 body.v7-aether.coach-light #protocol-script{display:none !important}
-/* ── Mid area: restructure for consumer layout ── */
+/* ── Mid area: breathing layout with generous space ── */
 body.v7-aether.coach-light #mid-area{
   background:transparent !important;flex-direction:column !important;
-  align-items:center !important;gap:0 !important;padding:8px 0 !important;
+  align-items:center !important;gap:0 !important;padding:24px 0 8px !important;
 }
+/* ── AMBIENT ORB: calm breathing presence replacing data-dense radar ── */
 body.v7-aether.coach-light #atlas-wrap{
-  background:radial-gradient(ellipse at 50% 45%,#ffffff,#f0f0f2) !important;
-  border:1px solid rgba(0,0,0,0.06) !important;border-radius:50% !important;
-  box-shadow:0 4px 24px rgba(0,0,0,0.06),inset 0 0 40px rgba(0,0,0,0.02) !important;
-  width:min(360px,65vw) !important;height:min(360px,65vw) !important;
+  background:transparent !important;
+  border:none !important;border-radius:50% !important;
+  box-shadow:none !important;
+  width:min(300px,56vw) !important;height:min(300px,56vw) !important;
   min-height:0 !important;margin:0 auto !important;
   flex:0 0 auto !important;order:1 !important;
-  aspect-ratio:1/1;
+  aspect-ratio:1/1;position:relative !important;
+  animation:orbBreathe var(--breathe-dur) ease-in-out infinite !important;
+  transition:all 1.2s cubic-bezier(0.4,0,0.2,1) !important;
 }
-/* ── Score panels: horizontal strip below radar ── */
+/* Ambient glow ring */
+body.v7-aether.coach-light #atlas-wrap::before{
+  content:'';position:absolute;inset:-10px;border-radius:50%;z-index:0;
+  background:radial-gradient(circle,var(--state-glow,rgba(107,204,143,0.12)) 0%,transparent 70%);
+  animation:stateGlow 3.5s ease-in-out infinite;transition:background 1.5s ease;pointer-events:none;
+}
+/* Inner light */
+body.v7-aether.coach-light #atlas-wrap::after{
+  content:'';position:absolute;inset:8%;border-radius:50%;z-index:0;
+  background:radial-gradient(ellipse at 45% 40%,rgba(255,255,255,0.96),rgba(245,243,240,0.6));
+  pointer-events:none;
+}
+body.v7-aether.coach-light #atlas-wrap canvas{position:relative;z-index:1}
+/* ── Score panels: expandable cards ── */
 body.v7-aether.coach-light .sc-panel{
   position:static !important;transform:none !important;
   display:grid !important;grid-template-columns:repeat(3,1fr) !important;
-  width:min(440px,92vw) !important;margin:12px auto 0 !important;
-  gap:8px !important;background:transparent !important;
+  width:min(420px,90vw) !important;margin:20px auto 0 !important;
+  gap:10px !important;background:transparent !important;
   backdrop-filter:none !important;border:none !important;box-shadow:none !important;
   flex-shrink:0 !important;
 }
 body.v7-aether.coach-light #scores-left{order:2 !important}
 body.v7-aether.coach-light #scores-right{order:3 !important}
 body.v7-aether.coach-light .sc{
-  background:#ffffff !important;
-  border:1px solid rgba(0,0,0,0.05) !important;
-  box-shadow:0 1px 4px rgba(0,0,0,0.04) !important;
-  border-radius:14px !important;padding:10px 6px !important;
-  min-height:52px !important;position:relative;overflow:hidden;
-  text-align:center !important;
+  background:var(--card) !important;
+  border:1px solid var(--card-border) !important;
+  box-shadow:var(--card-shadow) !important;
+  border-radius:16px !important;padding:12px 8px 10px !important;
+  min-height:56px !important;position:relative;overflow:hidden;
+  text-align:center !important;cursor:pointer !important;
+  transition:all 0.4s cubic-bezier(0.4,0,0.2,1) !important;
+  animation:cardReveal 0.5s ease both !important;
+}
+body.v7-aether.coach-light .sc:hover{
+  transform:translateY(-2px) !important;box-shadow:0 4px 24px rgba(0,0,0,0.07) !important;
 }
 body.v7-aether.coach-light .sc::before{
   content:'';position:absolute;left:0;bottom:0;height:3px;width:100%;
-  background:linear-gradient(to right,var(--score-clr,#ddd) var(--score-pct,0%),rgba(0,0,0,0.04) var(--score-pct,0%));
-  transition:background 0.4s ease;
+  background:linear-gradient(to right,var(--score-clr,#ddd) var(--score-pct,0%),rgba(0,0,0,0.03) var(--score-pct,0%));
+  transition:all 0.6s cubic-bezier(0.4,0,0.2,1);border-radius:0 0 16px 16px;
 }
 body.v7-aether.coach-light .sc-val{
-  color:var(--score-clr,#1d1d1f) !important;font-size:22px !important;font-weight:700 !important;
+  color:var(--score-clr,#1a1a2e) !important;font-size:24px !important;font-weight:700 !important;
+  transition:color 0.8s ease !important;
 }
 body.v7-aether.coach-light .sc-lbl{
-  color:#6e6e73 !important;font-size:9px !important;font-weight:500 !important;
-  letter-spacing:0.04em !important;
+  color:#9e9eb0 !important;font-size:9px !important;font-weight:600 !important;
+  letter-spacing:0.06em !important;text-transform:uppercase !important;
 }
 body.v7-aether.coach-light .sc-unit{display:none !important}
 body.v7-aether.coach-light .sc.hi{
-  border-color:var(--score-clr,rgba(0,0,0,0.1)) !important;
-  box-shadow:0 2px 12px rgba(0,0,0,0.08) !important;
-  transform:translateY(-1px);
+  border-color:var(--score-clr,rgba(0,0,0,0.08)) !important;
+  box-shadow:0 4px 28px rgba(0,0,0,0.08) !important;transform:translateY(-2px) !important;
 }
-/* ── Interpretation (Coach Panel) — the hero text ── */
+/* ── HERO INTERPRETATION — the soul of Breathe ── */
 body.v7-aether.coach-light #interp{
-  background:#ffffff !important;border:1px solid rgba(0,0,0,0.05) !important;
-  border-radius:20px !important;margin:16px auto 12px !important;
-  box-shadow:0 2px 16px rgba(0,0,0,0.05) !important;
-  height:140px !important;min-height:0 !important;max-height:140px !important;
-  padding:20px 28px !important;overflow:hidden !important;
-  width:min(480px,92vw) !important;order:4 !important;
+  background:var(--card) !important;border:1px solid var(--card-border) !important;
+  border-radius:24px !important;margin:24px auto 16px !important;
+  box-shadow:0 4px 32px rgba(0,0,0,0.04) !important;
+  height:auto !important;min-height:96px !important;max-height:200px !important;
+  padding:28px 32px 24px !important;overflow:hidden !important;
+  width:min(500px,90vw) !important;order:4 !important;
+  transition:all 0.5s cubic-bezier(0.4,0,0.2,1) !important;
 }
+body.v7-aether.coach-light #interp:hover{box-shadow:0 6px 40px rgba(0,0,0,0.06) !important}
 body.v7-aether.coach-light #interp-text{
-  font-size:16px !important;line-height:1.55 !important;color:#1d1d1f !important;
+  font-size:17px !important;line-height:1.65 !important;color:#1a1a2e !important;
   font-family:'DM Sans',sans-serif !important;font-weight:400 !important;
-  -webkit-line-clamp:4 !important;
-  transition:opacity 0.3s ease !important;
+  transition:opacity 0.6s ease !important;
+  animation:insightFade 0.4s ease both;
 }
-body.v7-aether.coach-light #phase-row{margin-bottom:6px !important}
+body.v7-aether.coach-light #phase-row{margin-bottom:10px !important}
+body.v7-aether.coach-light #phase-dot{transition:background 1s ease !important;width:8px !important;height:8px !important}
 body.v7-aether.coach-light #phase-name{
-  color:#6e6e73 !important;font-size:12px !important;
-  font-weight:600 !important;letter-spacing:0.08em !important;
+  color:#9e9eb0 !important;font-size:11px !important;
+  font-weight:600 !important;letter-spacing:0.1em !important;
   text-transform:uppercase !important;
 }
 /* ── Research ribbon — hidden by default ── */
@@ -902,95 +943,108 @@ body.v7-aether.coach-light #v7-labmark{display:none !important}
 /* ── SNR/Q badges — hidden by default ── */
 body.v7-aether.coach-light #snr-badge,
 body.v7-aether.coach-light #qual-badge{display:none !important}
-/* ── VPD sheet ── */
-body.v7-aether.coach-light #vpd-sheet{
-  background:transparent !important;
-}
+/* ── Surface quickbar — hidden in coach mode to avoid duplicate toggles ── */
+body.v7-aether.coach-light #surface-quickbar{display:none !important}
+body.v7-aether.coach-light.advanced #surface-quickbar{display:flex !important}
+/* ── VPD sheet — refined for Breathe ── */
+body.v7-aether.coach-light #vpd-sheet{background:transparent !important}
 body.v7-aether.coach-light #vpd-toggle{
-  background:rgba(255,255,255,0.96) !important;color:#1d1d1f !important;
-  border:1px solid rgba(0,0,0,0.06) !important;border-bottom:none !important;
-  border-radius:16px 16px 0 0 !important;
+  background:var(--surface) !important;color:#1a1a2e !important;
+  border:1px solid rgba(0,0,0,0.04) !important;border-bottom:none !important;
+  border-radius:20px 20px 0 0 !important;backdrop-filter:blur(20px) !important;
+  transition:all 0.3s ease !important;
 }
-body.v7-aether.coach-light #vpd-toggle-label{color:var(--gold) !important}
-body.v7-aether.coach-light #vpd-toggle-summary{color:#6e6e73 !important}
+body.v7-aether.coach-light #vpd-toggle:hover{background:rgba(255,255,255,0.98) !important}
+body.v7-aether.coach-light #vpd-toggle-label{color:var(--gold) !important;font-weight:600 !important}
+body.v7-aether.coach-light #vpd-toggle-summary{color:#9e9eb0 !important}
 body.v7-aether.coach-light #vpd-panel{
-  background:rgba(255,255,255,0.98) !important;color:#1d1d1f !important;
-  border:1px solid rgba(0,0,0,0.06) !important;border-top:none !important;
+  background:rgba(255,255,255,0.98) !important;color:#1a1a2e !important;
+  border:1px solid rgba(0,0,0,0.04) !important;border-top:none !important;
+  backdrop-filter:blur(20px) !important;
 }
 body.v7-aether.coach-light .vpd-card{
-  background:rgba(0,0,0,0.02) !important;border:1px solid rgba(0,0,0,0.05) !important;
-  border-radius:12px !important;
+  background:rgba(0,0,0,0.015) !important;border:1px solid rgba(0,0,0,0.04) !important;
+  border-radius:16px !important;transition:all 0.3s ease !important;
 }
-body.v7-aether.coach-light .vpd-card-title{color:#6e6e73 !important}
-body.v7-aether.coach-light .vpd-metric-label{color:#6e6e73 !important}
-body.v7-aether.coach-light .vpd-metric-val{color:#1d1d1f !important}
-body.v7-aether.coach-light #vpd-insight-text{color:#1d1d1f !important;font-size:14px !important;line-height:1.5 !important}
+body.v7-aether.coach-light .vpd-card:hover{background:rgba(0,0,0,0.025) !important;box-shadow:0 2px 12px rgba(0,0,0,0.04) !important}
+body.v7-aether.coach-light .vpd-card-title{color:#9e9eb0 !important;font-weight:600 !important}
+body.v7-aether.coach-light .vpd-metric-label{color:#9e9eb0 !important}
+body.v7-aether.coach-light .vpd-metric-val{color:#1a1a2e !important}
+body.v7-aether.coach-light #vpd-insight-text{color:#1a1a2e !important;font-size:15px !important;line-height:1.6 !important;font-family:'DM Sans',sans-serif !important}
 body.v7-aether.coach-light #vpd-diagnostic{border-left-color:var(--gold) !important}
-/* ── Overlays: premium consumer design ── */
+/* ── Overlays: warm, inviting onboarding ── */
 body.v7-aether.coach-light #start{
-  background:#f5f5f7 !important;
+  background:linear-gradient(168deg,#fafafa 0%,#f5f3ef 100%) !important;
   display:flex !important;align-items:center !important;justify-content:center !important;
 }
 body.v7-aether.coach-light .sb{
-  background:#ffffff !important;box-shadow:0 4px 32px rgba(0,0,0,0.06) !important;
-  border:1px solid rgba(0,0,0,0.04) !important;border-radius:28px !important;
-  max-width:420px !important;padding:48px 40px 40px !important;text-align:center !important;
+  background:var(--card) !important;box-shadow:0 8px 60px rgba(0,0,0,0.06) !important;
+  border:1px solid rgba(0,0,0,0.03) !important;border-radius:32px !important;
+  max-width:440px !important;padding:52px 44px 44px !important;text-align:center !important;
+  animation:fadeUp 0.6s ease both !important;
 }
 body.v7-aether.coach-light .sb-brand{
-  color:#aeaeb2 !important;font-size:12px !important;letter-spacing:0.15em !important;
-  text-transform:uppercase !important;margin-bottom:4px !important;
+  color:#9e9eb0 !important;font-size:11px !important;letter-spacing:0.18em !important;
+  text-transform:uppercase !important;margin-bottom:6px !important;font-weight:600 !important;
 }
 body.v7-aether.coach-light .sb-title{
-  color:#1d1d1f !important;text-shadow:none !important;
-  background:none !important;-webkit-text-fill-color:#1d1d1f !important;
-  font-size:36px !important;font-weight:700 !important;margin-bottom:20px !important;
+  color:#1a1a2e !important;text-shadow:none !important;
+  background:none !important;-webkit-text-fill-color:#1a1a2e !important;
+  font-size:42px !important;font-weight:800 !important;margin-bottom:20px !important;
+  letter-spacing:-0.02em !important;
 }
 body.v7-aether.coach-light .sb-text{
-  color:#6e6e73 !important;font-size:15px !important;line-height:1.6 !important;
-  margin-bottom:28px !important;
+  color:#5a5a72 !important;font-size:15px !important;line-height:1.7 !important;
+  margin-bottom:32px !important;
 }
 body.v7-aether.coach-light .sb-go{
-  background:#1d1d1f !important;color:#ffffff !important;
-  border:none !important;border-radius:14px !important;
-  box-shadow:0 2px 12px rgba(0,0,0,0.12) !important;
+  background:linear-gradient(135deg,#1a1a2e,#2d2d4a) !important;color:#ffffff !important;
+  border:none !important;border-radius:16px !important;
+  box-shadow:0 4px 20px rgba(26,26,46,0.18) !important;
   text-shadow:none !important;font-size:16px !important;
-  padding:14px 36px !important;font-weight:600 !important;
-  letter-spacing:0.01em !important;transition:all 0.2s ease !important;
+  padding:16px 40px !important;font-weight:600 !important;
+  letter-spacing:0.01em !important;transition:all 0.3s cubic-bezier(0.4,0,0.2,1) !important;
 }
 body.v7-aether.coach-light .sb-go:hover{
-  background:#333 !important;transform:translateY(-1px) !important;
-  box-shadow:0 4px 16px rgba(0,0,0,0.16) !important;
+  background:linear-gradient(135deg,#2d2d4a,#3a3a5c) !important;
+  transform:translateY(-2px) !important;box-shadow:0 8px 28px rgba(26,26,46,0.22) !important;
 }
 body.v7-aether.coach-light .sb-note{
-  color:#aeaeb2 !important;font-size:11px !important;margin-top:16px !important;
+  color:#9e9eb0 !important;font-size:11px !important;margin-top:20px !important;line-height:1.5 !important;
 }
 body.v7-aether.coach-light #mic-ov,
 body.v7-aether.coach-light #cal-ov,
 body.v7-aether.coach-light #bl-ov{
-  background:rgba(245,245,247,0.96) !important;backdrop-filter:blur(16px) !important;
+  background:rgba(250,250,250,0.94) !important;backdrop-filter:blur(20px) !important;
 }
 body.v7-aether.coach-light .ov-box{
-  background:#ffffff !important;color:#1d1d1f !important;
-  border:1px solid rgba(0,0,0,0.06) !important;
-  box-shadow:0 8px 40px rgba(0,0,0,0.08) !important;
+  background:var(--card) !important;color:#1a1a2e !important;
+  border:1px solid rgba(0,0,0,0.04) !important;box-shadow:0 12px 60px rgba(0,0,0,0.08) !important;
+  border-radius:24px !important;animation:fadeUp 0.5s ease both !important;
 }
-body.v7-aether.coach-light .ov-t,.ov-sub{color:#1d1d1f !important}
+body.v7-aether.coach-light .ov-t{color:#1a1a2e !important;font-weight:700 !important}
+body.v7-aether.coach-light .ov-sub{color:#5a5a72 !important}
 body.v7-aether.coach-light .cal-t{color:var(--gold) !important}
-body.v7-aether.coach-light .cal-text{color:#6e6e73 !important}
+body.v7-aether.coach-light .cal-text{color:#5a5a72 !important}
 body.v7-aether.coach-light .ov-btn{
-  background:rgba(0,0,0,0.04) !important;color:#1d1d1f !important;
-  border:1px solid rgba(0,0,0,0.08) !important;
+  background:rgba(0,0,0,0.03) !important;color:#1a1a2e !important;
+  border:1px solid rgba(0,0,0,0.06) !important;border-radius:12px !important;
+  transition:all 0.25s ease !important;
 }
-body.v7-aether.coach-light .ov-allow{background:#1d1d1f !important;color:#fff !important;border:none !important}
-body.v7-aether.coach-light #bl-st{color:#6e6e73 !important}
-body.v7-aether.coach-light #bl-karaoke-text{color:rgba(0,0,0,0.22) !important}
-body.v7-aether.coach-light #bl-karaoke-label{color:rgba(0,0,0,0.4) !important}
-body.v7-aether.coach-light #bl-karaoke-hint{color:rgba(0,0,0,0.3) !important}
+body.v7-aether.coach-light .ov-btn:hover{background:rgba(0,0,0,0.05) !important}
+body.v7-aether.coach-light .ov-allow{
+  background:linear-gradient(135deg,#1a1a2e,#2d2d4a) !important;color:#fff !important;border:none !important;
+}
+body.v7-aether.coach-light #bl-st{color:#5a5a72 !important}
+body.v7-aether.coach-light #bl-karaoke-text{color:rgba(0,0,0,0.18) !important}
+body.v7-aether.coach-light #bl-karaoke-label{color:rgba(0,0,0,0.35) !important}
+body.v7-aether.coach-light #bl-karaoke-hint{color:rgba(0,0,0,0.25) !important}
 /* ── Toasts ── */
 body.v7-aether.coach-light .toast{
-  background:rgba(255,255,255,0.96) !important;color:#1d1d1f !important;
-  border:1px solid rgba(0,0,0,0.06) !important;
-  box-shadow:0 4px 16px rgba(0,0,0,0.08) !important;
+  background:var(--surface) !important;color:#1a1a2e !important;
+  border:1px solid rgba(0,0,0,0.04) !important;box-shadow:0 8px 32px rgba(0,0,0,0.08) !important;
+  border-radius:14px !important;backdrop-filter:blur(20px) !important;
+  animation:fadeUp 0.3s ease both !important;
 }
 /* ── Advanced mode — reveal hidden sections ── */
 body.v7-aether.coach-light.advanced #meta-bar{display:flex !important}
@@ -1004,72 +1058,89 @@ body.v7-aether.coach-light.advanced #qual-badge{display:flex !important}
 body.v7-aether.coach-light.advanced #meta-bar,
 body.v7-aether.coach-light.advanced #protocol-bar,
 body.v7-aether.coach-light.advanced #research-ribbon{
-  background:rgba(255,255,255,0.88) !important;
-  border-color:rgba(0,0,0,0.06) !important;
-  color:#1d1d1f !important;
+  background:var(--surface) !important;border-color:rgba(0,0,0,0.04) !important;
+  color:#1a1a2e !important;backdrop-filter:blur(16px) !important;
+  border-radius:12px !important;margin:4px 8px !important;
 }
 body.v7-aether.coach-light.advanced #meta-bar select,
 body.v7-aether.coach-light.advanced #meta-bar input,
 body.v7-aether.coach-light.advanced #protocol-bar select,
 body.v7-aether.coach-light.advanced #protocol-bar button{
-  background:rgba(0,0,0,0.03) !important;color:#1d1d1f !important;
-  border:1px solid rgba(0,0,0,0.08) !important;
+  background:rgba(0,0,0,0.02) !important;color:#1a1a2e !important;
+  border:1px solid rgba(0,0,0,0.06) !important;border-radius:8px !important;
 }
-body.v7-aether.coach-light.advanced .meta-field span{color:#6e6e73 !important}
+body.v7-aether.coach-light.advanced .meta-field span{color:#9e9eb0 !important}
 body.v7-aether.coach-light.advanced .r-pill{
-  background:rgba(0,0,0,0.04) !important;color:#1d1d1f !important;
-  border:1px solid rgba(0,0,0,0.06) !important;
+  background:rgba(0,0,0,0.03) !important;color:#1a1a2e !important;
+  border:1px solid rgba(0,0,0,0.04) !important;border-radius:10px !important;
 }
 body.v7-aether.coach-light.advanced .e-chip{
-  background:rgba(200,149,46,0.12) !important;color:#8b6914 !important;
-  border:1px solid rgba(200,149,46,0.2) !important;
+  background:rgba(200,149,46,0.08) !important;color:#8b6914 !important;
+  border:1px solid rgba(200,149,46,0.15) !important;border-radius:8px !important;
 }
 body.v7-aether.coach-light.advanced #state-legend{
-  background:rgba(255,255,255,0.88) !important;border-color:rgba(0,0,0,0.06) !important;
+  background:var(--surface) !important;border-color:rgba(0,0,0,0.04) !important;
+  backdrop-filter:blur(16px) !important;
 }
-body.v7-aether.coach-light.advanced .sl-name{color:#1d1d1f !important}
-body.v7-aether.coach-light.advanced .sl-def{color:#6e6e73 !important}
+body.v7-aether.coach-light.advanced .sl-name{color:#1a1a2e !important}
+body.v7-aether.coach-light.advanced .sl-def{color:#5a5a72 !important}
+/* Breathe: Orb reverts to full radar in advanced mode */
+body.v7-aether.coach-light.advanced #atlas-wrap{
+  animation:none !important;border-radius:18px !important;
+  background:radial-gradient(ellipse at 50% 45%,#ffffff,#f5f5f7) !important;
+  border:1px solid rgba(0,0,0,0.04) !important;box-shadow:0 2px 16px rgba(0,0,0,0.04) !important;
+  width:auto !important;height:auto !important;aspect-ratio:auto !important;flex:1 !important;
+}
+body.v7-aether.coach-light.advanced #atlas-wrap::before,
+body.v7-aether.coach-light.advanced #atlas-wrap::after{display:none !important}
+body.v7-aether.coach-light.advanced #mid-area{flex-direction:row !important;padding:4px 0 !important}
+body.v7-aether.coach-light.advanced .sc-panel{
+  position:absolute !important;width:auto !important;margin:0 !important;
+  display:flex !important;flex-direction:column !important;gap:6px !important;
+}
 /* ── State key modal ── */
-body.v7-aether.coach-light #state-key{background:rgba(245,245,247,0.92) !important}
+body.v7-aether.coach-light #state-key{background:rgba(250,250,250,0.92) !important;backdrop-filter:blur(20px) !important}
 body.v7-aether.coach-light #state-key-box{
-  background:#fff !important;color:#1d1d1f !important;
-  border:1px solid rgba(0,0,0,0.06) !important;
-  box-shadow:0 8px 40px rgba(0,0,0,0.1) !important;
+  background:var(--card) !important;color:#1a1a2e !important;
+  border:1px solid rgba(0,0,0,0.04) !important;box-shadow:0 12px 60px rgba(0,0,0,0.1) !important;
+  border-radius:24px !important;animation:fadeUp 0.4s ease both !important;
 }
-body.v7-aether.coach-light #state-key-box h3{color:#1d1d1f !important}
-body.v7-aether.coach-light .sk-desc{color:#6e6e73 !important}
-/* ── Mobile coach-light overrides ── */
+body.v7-aether.coach-light #state-key-box h3{color:#1a1a2e !important}
+body.v7-aether.coach-light .sk-desc{color:#5a5a72 !important}
+/* ── MOBILE: Breathe responsive ── */
 @media(max-width:768px){
-  body.v7-aether.coach-light #hdr{height:44px !important;padding:0 10px !important}
+  body.v7-aether.coach-light #hdr{height:42px !important;padding:0 12px !important}
   body.v7-aether.coach-light #atlas-wrap{
-    width:min(300px,70vw) !important;height:min(300px,70vw) !important;
+    width:min(240px,58vw) !important;height:min(240px,58vw) !important;
   }
+  body.v7-aether.coach-light #mid-area{padding:16px 0 4px !important}
   body.v7-aether.coach-light .sc-panel{
-    width:92vw !important;gap:6px !important;margin:8px auto 0 !important;
+    width:90vw !important;gap:8px !important;margin:14px auto 0 !important;
   }
   body.v7-aether.coach-light .sc{
-    padding:8px 4px !important;min-height:44px !important;border-radius:12px !important;
+    padding:10px 6px !important;min-height:48px !important;border-radius:14px !important;
   }
-  body.v7-aether.coach-light .sc-val{font-size:18px !important}
+  body.v7-aether.coach-light .sc-val{font-size:20px !important}
   body.v7-aether.coach-light .sc-lbl{font-size:8px !important}
   body.v7-aether.coach-light #interp{
-    margin:10px auto 8px !important;padding:16px 18px !important;
-    height:120px !important;min-height:0 !important;max-height:120px !important;
-    border-radius:16px !important;width:92vw !important;overflow:hidden !important;
+    margin:16px auto 10px !important;padding:22px 22px 18px !important;
+    min-height:80px !important;max-height:180px !important;
+    border-radius:20px !important;width:90vw !important;
   }
-  body.v7-aether.coach-light #interp-text{font-size:15px !important;line-height:1.5 !important}
+  body.v7-aether.coach-light #interp-text{font-size:15px !important;line-height:1.6 !important}
   body.v7-aether.coach-light .sb{
-    margin:16px !important;padding:36px 28px 32px !important;border-radius:22px !important;
+    margin:16px !important;padding:40px 28px 32px !important;border-radius:24px !important;
   }
-  body.v7-aether.coach-light .sb-title{font-size:28px !important}
+  body.v7-aether.coach-light .sb-title{font-size:32px !important}
   body.v7-aether.coach-light .sb-text{font-size:14px !important}
 }
 @media(max-width:400px){
   body.v7-aether.coach-light #atlas-wrap{
-    width:min(260px,72vw) !important;height:min(260px,72vw) !important;
+    width:min(200px,64vw) !important;height:min(200px,64vw) !important;
   }
-  body.v7-aether.coach-light .sc-val{font-size:16px !important}
+  body.v7-aether.coach-light .sc-val{font-size:18px !important}
   body.v7-aether.coach-light #interp-text{font-size:14px !important}
+  body.v7-aether.coach-light .sb-title{font-size:28px !important}
 }
 </style>
 </head>
@@ -1266,8 +1337,8 @@ var STATES=[
 var STATE_PROTO_RAW=[
   [ 0.0, 0.0, 0.0,-1.0, 0.0,+1.0,+1.0,+1.0],  // CLEAR
   [+0.9,+1.0,+0.7,-0.8,+0.4,-0.5,-0.3,-0.4],  // ACTIVATED
-  [ 0.0, 0.0,-0.8,+1.0, 0.0,-0.6,-0.4, 0.0],  // LOADED
-  [-1.0,-0.8,-0.8, 0.0,-0.4,-0.3,-0.8,-0.6],  // LOW ENERGY
+  [ 0.0, 0.0,-0.8,+1.0, 0.0,-0.6,-0.4, 0.0],  // LOADED: normal volume/pitch BUT slow rate + heavy pauses
+  [-1.0,-0.8,-0.6,+0.3,-0.5,-0.3,-0.8,-0.6],  // LOW ENERGY: everything drops — loud, pitch, rate, bright, HNR + mild pauses
   [ 0.0,+0.1,-0.6,+0.6, 0.0,+0.9,+0.1,+0.7],  // RESTRAINED
   [+0.5,+0.8,-0.3,+0.4, 0.0,+0.8,-0.3,+0.7]   // TENSE
 ];
@@ -2055,7 +2126,7 @@ var PITCH_RELEASE_FRAMES=2;
 var PITCH_RELEASE_DECAY=0.35;
 var EXP_CAL2_LIVE_ENABLED=true;
 var exportBundleCache=null;
-var APP_BUILD='7.0.4-aether-surgical-activated-guard';
+var APP_BUILD='7.3.0-orator-breathe-hybrid';
 var PREFS_KEY='chorus.orator.prefs.v600';
 var RECOVERY_DB_NAME='chorus_orator_recovery';
 var RECOVERY_STORE='snapshots';
@@ -5783,7 +5854,7 @@ function applyResearchEnsembleLive(featMap,baseState,baseSource,legacyName,legac
 var FREE_PERSONAL_PROFILE_ENABLED=true;
 var FREE_PERSONAL_PROFILE={
   "id":"free_personal_fs_multi_20260314_v5",
-  "baseVersion":"7.0.4-aether-surgical-activated-guard-live",
+  "baseVersion":"7.3.0-orator-breathe-hybrid-live",
   "sourceSessions":["chorus_session_20260311_1332.json","chorus_session_20260311_1440.json"],
   "taskType":"free_speech",
   "windowFrames":30,
@@ -6941,7 +7012,7 @@ function genExportJSON(){
   }
   var data={
     version:'1.8',
-    chorus:'7.0.4-aether-surgical-activated-guard-live',
+    chorus:'7.3.0-orator-breathe-hybrid-live',
     exportedAt:dt.toISOString(),
     snapshot:{id:bundle.id,takenAt:new Date(bundle.createdAtMs).toISOString(),reuseWindowMs:EXPORT_BUNDLE_REUSE_MS},
     session:{
@@ -7148,7 +7219,7 @@ window.addEventListener('beforeunload',function(e){
 <script id="v7-aether-script">
 (function(){
 "use strict";
-var V7_BUILD='7.0.4-aether-surgical-activated-guard';
+var V7_BUILD='7.3.0-orator-breathe-hybrid';
 if(typeof APP_BUILD==='string') APP_BUILD=V7_BUILD;
 try{ document.title='CHORUS Orator v7.0.0 Aether Research Lab'; }catch(_e){}
 var V7_ORDER=['CLEAR','ACTIVATED','LOADED','LOW ENERGY','RESTRAINED','TENSE'];
@@ -7653,53 +7724,101 @@ else v7Boot();
 })();
 
 /* ═══════════════════════════════════════════════════════════════════
-   COACH LIGHT MODE — Consumer-facing interpretation + boot
+   ORATOR BREATHE MODE v7.3.0 — Mindful companion + narrative interpretation
+   Progressive disclosure, ambient state glow, smooth morphing.
    Reads scoring variables but NEVER writes to them.
    ═══════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
 
-// ── Coach interpretation helpers (one per state) ──
-function _coachClear(score){
-  if(score>70) return 'Your voice sounds confident and authoritative \u2014 this is your vocal sweet spot. Clear, steady delivery.';
-  if(score>40) return 'Good clarity in your voice. Steady pitch and even pacing \u2014 you\u2019re communicating well.';
-  return 'Your voice is relatively clear. A bit more projection could strengthen your delivery.';
-}
-function _coachActivated(score){
-  if(score>60) return 'You\u2019re bringing strong energy \u2014 great for emphasis, but consider a brief pause to let key points land.';
-  if(score>35) return 'Your voice has good energy and animation. This dynamic delivery keeps listeners engaged.';
-  return 'Elevated vocal energy detected. You\u2019re speaking with emphasis \u2014 powerful for important points.';
-}
-function _coachLoaded(score){
-  if(score>60) return 'You\u2019re working through complex ideas \u2014 your pauses and pace show it. Try simplifying your phrasing.';
-  if(score>35) return 'Your voice reflects thoughtful processing. Consider rehearsing this section for smoother delivery.';
-  return 'Some cognitive load showing in your speech. Natural for complex material \u2014 take your time.';
-}
-function _coachLowEnergy(score){
-  if(score>60) return 'Your energy is dropping noticeably. Try standing up, projecting more, or taking a quick breath reset.';
-  if(score>35) return 'Your voice has softened. If intentional, this creates intimacy. If not, try adding more vocal energy.';
-  return 'Lower energy detected in your delivery. A slight increase in volume and pace would help engagement.';
-}
-function _coachRestrained(score){
-  if(score>60) return 'You\u2019re holding your voice in a tight, controlled range. Try expanding your pitch on key words for more impact.';
-  if(score>35) return 'Controlled, measured delivery. Good for formal contexts \u2014 for warmth, try varying your tone more.';
-  return 'Your voice is somewhat restrained. Opening up your pitch range would add expressiveness.';
-}
-function _coachTense(score){
-  if(score>60) return 'Very precise delivery, but your voice sounds a bit tight. Relax your jaw and breathe \u2014 warmth will follow.';
-  if(score>35) return 'High precision in your speech. You\u2019re very controlled \u2014 a slightly looser delivery would sound more natural.';
-  return 'Elevated precision detected. This is common in formal reading \u2014 try a more conversational tone.';
+// ── State glow colors (CSS custom property values) ──
+var GLOW_MAP=[
+  'rgba(107,204,143,0.18)',  // CLEAR — calm green
+  'rgba(204,85,85,0.18)',    // ACTIVATED — warm red
+  'rgba(232,168,60,0.18)',   // LOADED — amber
+  'rgba(122,122,170,0.16)',  // LOW ENERGY — muted lavender
+  'rgba(204,107,155,0.16)',  // RESTRAINED — rose
+  'rgba(224,120,48,0.18)',   // TENSE — orange
+  'rgba(136,136,136,0.08)',  // QUIET
+  'rgba(212,168,85,0.12)',   // CALIBRATING
+  'rgba(124,199,255,0.12)'   // PHONATION
+];
+var _lastGlowState=-1;
+
+function updateOrbGlow(stateIdx){
+  if(stateIdx===_lastGlowState)return;
+  _lastGlowState=stateIdx;
+  var g=GLOW_MAP[stateIdx]||GLOW_MAP[0];
+  var wrap=document.getElementById('atlas-wrap');
+  if(wrap)wrap.style.setProperty('--state-glow',g);
 }
 
-// ── Main coach interpretation function ──
-// Reads: dispDomState, dispFocus, dispStress, dispLoad, dispFatigue, dispGuarded, dispTension,
-//        micOn, demo, unvoicedCount, raw, baselinePhase, sWarm, sm, lastRateMean, STATES
-// NEVER writes to any of these.
+// ── Narrative interpretation: context-rich, human sentences ──
+// Each returns a primary sentence + optional secondary insight.
+
+function _breatheClear(score,ctx){
+  var s='';
+  if(score>75) s='Your voice is in its sweet spot \u2014 clear, grounded, and effortlessly authoritative.';
+  else if(score>50) s='Steady and composed. Your pitch consistency and even pacing signal confidence to listeners.';
+  else if(score>30) s='Good clarity in your voice. You\u2019re communicating with natural ease.';
+  else s='Your delivery is relatively clear. A touch more projection would anchor it even further.';
+  if(ctx.pitchHz>0&&ctx.pitchHz<ctx.pitchBase*0.9) s+=' Your pitch has settled lower than your baseline \u2014 this can convey calm authority.';
+  return s;
+}
+function _breatheActivated(score,ctx){
+  var s='';
+  if(score>65) s='You\u2019re bringing strong vocal energy right now \u2014 this is powerful for emphasis, but a brief pause would let the key point land.';
+  else if(score>40) s='Good energy and animation in your delivery. This dynamic quality keeps listeners engaged.';
+  else s='Elevated vocal energy detected. You\u2019re speaking with natural emphasis \u2014 use it intentionally on your key messages.';
+  if(ctx.rate>0&&ctx.rateBase>0&&ctx.rate>ctx.rateBase*1.2) s+=' Your speaking pace has picked up \u2014 try slowing into your most important sentence.';
+  return s;
+}
+function _breatheLoaded(score,ctx){
+  var s='';
+  if(score>65) s='Your voice is carrying more cognitive weight than usual \u2014 longer pauses and variable pace suggest complex processing. Try simplifying one idea at a time.';
+  else if(score>40) s='Thoughtful processing showing in your speech pattern. Your pauses suggest you\u2019re working through nuanced material.';
+  else s='Some cognitive load is showing in your delivery. This is completely natural for complex material \u2014 take your time.';
+  if(ctx.pauseFrac>0.35) s+=' You\u2019re pausing more than usual \u2014 if intentional, this creates gravitas.';
+  return s;
+}
+function _breatheLowEnergy(score,ctx){
+  var s='';
+  if(score>65) s='Your energy has dropped noticeably below your baseline. Try standing up, taking a deep breath, or projecting toward the back of an imaginary room.';
+  else if(score>40) s='Your voice has softened. If this is intentional, it creates intimacy and draws listeners in. If not, a bit more volume would help.';
+  else s='Lower vocal energy detected. A slight lift in volume and pace would strengthen your presence.';
+  if(ctx.hnr>0&&ctx.hnr<1.5) s+=' Your harmonic clarity has decreased \u2014 a glass of water and a breath reset may help.';
+  return s;
+}
+function _breatheRestrained(score,ctx){
+  var s='';
+  if(score>65) s='You\u2019re holding your voice in a very tight, controlled range. Try opening up your pitch on one or two key words \u2014 even small variation adds warmth.';
+  else if(score>40) s='Measured, controlled delivery. This works well in formal contexts \u2014 to connect more warmly, try varying your tone on the words that matter most.';
+  else s='Your voice is somewhat compressed. Expanding your pitch range even slightly would add expressiveness and make your delivery more engaging.';
+  return s;
+}
+function _breatheTense(score,ctx){
+  var s='';
+  if(score>65) s='Very precise, tightly controlled delivery. Your articulatory precision is high but your voice sounds a bit tight. Relax your jaw, drop your shoulders, and let warmth follow.';
+  else if(score>40) s='High precision in your speech \u2014 you\u2019re very controlled. A slightly looser, more conversational delivery would sound more natural and approachable.';
+  else s='Elevated articulatory precision detected. This commonly appears during formal or scripted delivery \u2014 try imagining you\u2019re talking to a friend.';
+  if(ctx.pitchHz>0&&ctx.pitchBase>0&&ctx.pitchHz>ctx.pitchBase*1.15) s+=' Your pitch is elevated above baseline \u2014 a conscious exhale before your next sentence can bring it down.';
+  return s;
+}
+
+// ── Main Breathe interpretation ──
 window._interpretCoach = function(){
-  if(typeof micOn!=='undefined'&&!micOn&&typeof demo!=='undefined'&&!demo) return 'Tap the microphone to begin.';
-  if((typeof demo!=='undefined'&&demo||typeof unvoicedCount!=='undefined'&&unvoicedCount>15)&&typeof raw!=='undefined'&&raw[0]<0.05) return 'I\u2019m listening \u2014 start speaking whenever you\u2019re ready.';
-  if(typeof baselinePhase!=='undefined'&&baselinePhase) return 'Read the passage above at a comfortable pace. I\u2019m learning your voice.';
-  if(typeof sWarm!=='undefined'&&sWarm<35) return 'Getting to know your voice\u2026 '+Math.round(sWarm/0.35)+'% ready. Keep speaking naturally.';
+  if(typeof micOn!=='undefined'&&!micOn&&typeof demo!=='undefined'&&!demo)
+    return 'Tap the microphone to begin. I\u2019ll listen to your voice and help you understand your delivery in real time.';
+  if((typeof demo!=='undefined'&&demo||typeof unvoicedCount!=='undefined'&&unvoicedCount>15)&&typeof raw!=='undefined'&&raw[0]<0.05)
+    return 'I\u2019m listening \u2014 start speaking whenever you\u2019re ready. I\u2019ll begin analyzing as soon as I hear your voice.';
+  if(typeof baselinePhase!=='undefined'&&baselinePhase)
+    return 'Read the passage above at a comfortable, natural pace. I\u2019m learning the unique character of your voice.';
+  if(typeof sWarm!=='undefined'&&sWarm<35){
+    var pct=Math.min(99,Math.round(sWarm/0.35));
+    if(pct<30) return 'Getting to know your voice\u2026 Keep speaking naturally while I learn your baseline.';
+    if(pct<60) return 'Building your vocal profile\u2026 '+pct+'% calibrated. Your unique patterns are emerging.';
+    return 'Almost there\u2026 '+pct+'% ready. Your baseline is taking shape.';
+  }
 
   var idx=typeof dispDomState!=='undefined'?dispDomState:0;
   var scores=[
@@ -7711,40 +7830,52 @@ window._interpretCoach = function(){
     typeof dispTension!=='undefined'?Math.round(dispTension):0
   ];
 
-  var fns=[_coachClear,_coachActivated,_coachLoaded,_coachLowEnergy,_coachRestrained,_coachTense];
-  var main=(idx>=0&&idx<6)?fns[idx](scores[idx]):'Analyzing your voice\u2026';
+  // Build context for narrative enrichment
+  var ctx={
+    pitchHz:typeof pHz!=='undefined'?pHz:0,
+    pitchBase:(typeof fixedBase!=='undefined'&&fixedBase.pitchMu>1)?fixedBase.pitchMu:0,
+    rate:typeof sm!=='undefined'?sm[2]:0,
+    rateBase:typeof lastRateMean!=='undefined'?lastRateMean:0,
+    pauseFrac:typeof sm!=='undefined'?sm[3]:0,
+    hnr:typeof hnrDb!=='undefined'?hnrDb:0
+  };
 
-  // Rate coaching
+  // Update ambient orb glow
+  updateOrbGlow(idx);
+
+  var fns=[_breatheClear,_breatheActivated,_breatheLoaded,_breatheLowEnergy,_breatheRestrained,_breatheTense];
+  var main=(idx>=0&&idx<6)?fns[idx](scores[idx],ctx):'Analyzing your voice\u2026';
+
+  // Rate coaching supplement
   try{
-    var rateRef=typeof lastRateMean!=='undefined'?lastRateMean:0;
-    if(typeof sm!=='undefined'&&rateRef>0){
-      if(sm[2]<rateRef*0.82) main+=' You\u2019re slowing down \u2014 good for emphasis, but watch your energy.';
-      else if(sm[2]>rateRef*1.18) main+=' You\u2019re speeding up \u2014 try pausing on key points to let them land.';
+    if(ctx.rateBase>0&&ctx.rate>0){
+      if(ctx.rate<ctx.rateBase*0.78) main+=' Your pace has slowed significantly \u2014 use this for emphasis, but check your energy doesn\u2019t dip with it.';
+      else if(ctx.rate>ctx.rateBase*1.22) main+=' You\u2019ve picked up speed. Try pausing after your most important statement to let it resonate.';
     }
   }catch(e){}
 
   return main;
 };
 
-// ── Coach boot: activate light theme, modify start screen, add toggle ──
+// ── Coach boot: activate Breathe theme, rewrite content, add toggle ──
 function coachBoot(){
   document.body.classList.add('coach-light');
 
-  // Rewrite start screen for consumers
+  // Rewrite start screen for Breathe
   var sbTitle=document.querySelector('.sb-title');
   var sbText=document.querySelector('.sb-text');
   var sbGo=document.querySelector('.sb-go');
   var sbBrand=document.querySelector('.sb-brand');
-  if(sbBrand)sbBrand.textContent='CHORUS';
+  if(sbBrand)sbBrand.textContent='ORATOR';
   if(sbTitle)sbTitle.textContent='Voice Coach';
-  if(sbText)sbText.innerHTML='Real-time vocal coaching powered by acoustic science.<br><br>CHORUS listens to your voice and gives you <strong>instant feedback</strong> on clarity, energy, pace, and vocal variety.<br><br>All analysis runs <strong>locally on your device</strong> \u2014 nothing is recorded unless you choose to.';
-  if(sbGo)sbGo.textContent='Start Coaching';
+  if(sbText)sbText.innerHTML='Understand your voice in real time.<br><br>Orator listens to the <strong>acoustic shape</strong> of your speech \u2014 clarity, energy, pace, tension \u2014 and translates it into <strong>actionable insight</strong> you can feel as you speak.<br><br>All analysis runs <strong>locally on your device</strong>. Nothing is recorded unless you choose to.';
+  if(sbGo)sbGo.textContent='Begin Session';
 
-  // Rewrite mic overlay for consumers
+  // Rewrite mic overlay
   var ovT=document.querySelector('#mic-ov .ov-t');
   var ovSub=document.querySelector('#mic-ov .ov-sub');
   if(ovT)ovT.textContent='Microphone Access';
-  if(ovSub)ovSub.innerHTML='CHORUS needs your microphone to analyze your voice in real time.<br><br>All audio processing happens <strong>locally in your browser</strong>. No audio leaves your device unless you press Record.';
+  if(ovSub)ovSub.innerHTML='Orator needs your microphone to analyze your voice in real time.<br><br>All audio processing happens <strong>entirely in your browser</strong>. No audio data leaves your device unless you choose to record.';
 
   // Add Advanced toggle button to header
   var hr=document.querySelector('.hr');
@@ -7752,27 +7883,1322 @@ function coachBoot(){
     var advBtn=document.createElement('button');
     advBtn.className='hbtn';
     advBtn.id='adv-toggle';
-    advBtn.textContent='\u2699';
-    advBtn.title='Toggle Advanced View';
-    advBtn.style.cssText='font-size:14px;width:28px;min-width:28px;padding:0;opacity:0.5';
+    advBtn.title='Toggle Research View';
+    advBtn.style.cssText='font-size:10px;min-width:28px;padding:4px 10px;opacity:0.45;transition:all 0.3s ease';
+    advBtn.textContent='Lab';
     advBtn.onclick=function(){
       document.body.classList.toggle('advanced');
-      advBtn.style.opacity=document.body.classList.contains('advanced')?'1':'0.5';
-      try{localStorage.setItem('chorus_adv',document.body.classList.contains('advanced')?'1':'0');}catch(e){}
+      var isAdv=document.body.classList.contains('advanced');
+      advBtn.style.opacity=isAdv?'1':'0.45';
+      advBtn.textContent=isAdv?'Coach':'Lab';
+      try{localStorage.setItem('chorus_adv',isAdv?'1':'0');}catch(e){}
     };
     hr.appendChild(advBtn);
     // Restore preference
-    try{if(localStorage.getItem('chorus_adv')==='1'){document.body.classList.add('advanced');advBtn.style.opacity='1';}}catch(e){}
+    try{
+      if(localStorage.getItem('chorus_adv')==='1'){
+        document.body.classList.add('advanced');
+        advBtn.style.opacity='1';advBtn.textContent='Coach';
+      }
+    }catch(e){}
   }
 
-  // Update VPD toggle label for consumers
+  // Update VPD toggle label
   var vpdLabel=document.getElementById('vpd-toggle-label');
   if(vpdLabel)vpdLabel.textContent='Vocal Insights';
+
+  // Initialize ambient orb glow
+  updateOrbGlow(7);
 }
 
 // Boot after v7
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',coachBoot);
 else setTimeout(coachBoot,0);
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     ORATOR SENSE v1.0 — Emotional Intelligence Layer
+     Three signal dimensions, six primal signals, five human impressions.
+     Scientifically grounded (Scherer 2003, Juslin & Laukka 2003, Russell circumplex).
+     Reads DSP globals — never writes to them.
+     ═══════════════════════════════════════════════════════════════════ -->
+
+<style id="orator-sense-style">
+/* ═══════════════════════════════════════════════════════════════
+   ORATOR SENSE PANEL — Unified emotional intelligence display
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Orb gradient overlay (Coach mode only) ── */
+#sense-orb-overlay{
+  position:absolute;inset:2%;border-radius:50%;z-index:0;
+  background:radial-gradient(ellipse at 48% 42%,rgba(200,200,190,0.25),rgba(180,180,170,0.10));
+  opacity:0;transition:opacity 1.2s ease,background 1.5s cubic-bezier(0.4,0,0.2,1);
+  pointer-events:none;mix-blend-mode:multiply;filter:blur(2px);
+}
+body.v7-aether.coach-light .sense-ready #sense-orb-overlay{opacity:1}
+body:not(.coach-light) #sense-orb-overlay{opacity:0.6;mix-blend-mode:screen;filter:blur(4px)}
+
+/* ── Primal label on orb (Coach mode) ── */
+#sense-primal{
+  position:absolute;bottom:12%;left:50%;transform:translateX(-50%);z-index:2;
+  font:700 9px/1 'JetBrains Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;
+  color:rgba(255,255,255,0.25);white-space:nowrap;pointer-events:none;
+  opacity:0;transition:opacity 0.6s ease;
+}
+body.v7-aether.coach-light .sense-ready #sense-primal{opacity:1;color:rgba(0,0,0,0.3)}
+body:not(.coach-light) .sense-ready #sense-primal{opacity:0.7}
+
+/* ═══ THE SENSE PANEL — hero-first unified card ═══ */
+#sense-panel{
+  margin:24px 12px 24px;padding:0;clear:both;
+  border-radius:18px;overflow:hidden;
+  background:linear-gradient(170deg,rgba(30,28,35,0.95),rgba(22,20,28,0.98));
+  border:1px solid rgba(145,180,230,0.10);
+  box-shadow:0 12px 48px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.04);
+  opacity:0;max-height:0;
+  transition:opacity 0.8s ease,max-height 0.6s cubic-bezier(0.4,0,0.2,1),margin 0.4s ease;
+  position:relative;z-index:2;
+}
+#sense-panel.sense-active{opacity:1;max-height:2000px}
+body.v7-aether.coach-light #sense-panel{
+  background:rgba(255,255,255,0.97);border:1px solid rgba(0,0,0,0.05);
+  box-shadow:0 6px 32px rgba(0,0,0,0.06);margin:20px auto 24px;width:min(560px,94vw);
+}
+
+/* ── Hero section: THE dominant read ── */
+.sense-hero{
+  padding:32px 24px 20px;text-align:center;position:relative;
+  background:linear-gradient(180deg,rgba(212,168,85,0.06) 0%,transparent 100%);
+}
+body.v7-aether.coach-light .sense-hero{
+  background:linear-gradient(180deg,rgba(200,149,46,0.04) 0%,transparent 100%);
+}
+.sense-hero-label{
+  font:600 9px/1 'JetBrains Mono',monospace;letter-spacing:0.22em;text-transform:uppercase;
+  color:rgba(212,168,85,0.5);margin-bottom:12px;
+}
+body.v7-aether.coach-light .sense-hero-label{color:rgba(160,120,40,0.4)}
+.sense-hero-emotion{
+  font:800 32px/1.1 'DM Sans',sans-serif;letter-spacing:-0.02em;
+  color:#f0e6d2;margin:0 0 6px;
+  transition:color 0.8s ease,opacity 0.5s ease;
+}
+body.v7-aether.coach-light .sense-hero-emotion{color:#1a1a2e}
+/* Emotion-specific hero colors */
+.sense-hero-emotion[data-emotion="crying"]{color:#e87c7c}
+.sense-hero-emotion[data-emotion="sad"]{color:#7ca8e8}
+.sense-hero-emotion[data-emotion="angry"]{color:#e8604a}
+.sense-hero-emotion[data-emotion="happy"]{color:#e8c84a}
+.sense-hero-emotion[data-emotion="stressed"]{color:#e8a84a}
+.sense-hero-emotion[data-emotion="nervous"]{color:#c49be8}
+.sense-hero-emotion[data-emotion="exhausted"]{color:#8b97a8}
+.sense-hero-emotion[data-emotion="frustrated"]{color:#e8784a}
+.sense-hero-emotion[data-emotion="checked-out"]{color:#6b7580}
+.sense-hero-emotion[data-emotion="alive"]{color:#6bcc8f}
+.sense-hero-emotion[data-emotion="magnetic"]{color:#6bbccc}
+.sense-hero-emotion[data-emotion="steady"]{color:#e8a83c}
+.sense-hero-emotion[data-emotion="warm"]{color:#6bcc8f}
+.sense-hero-emotion[data-emotion="commanding"]{color:#9b7fd4}
+.sense-hero-emotion[data-emotion="connecting"]{color:#7cc8a8}
+.sense-hero-emotion[data-emotion="zone"]{color:#e8c84a}
+.sense-hero-emotion[data-emotion="centered"]{color:#a8b8c8}
+.sense-hero-emotion[data-emotion="default"]{color:#c8b898}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="crying"]{color:#c0392b}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="sad"]{color:#2c6fbb}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="angry"]{color:#c0392b}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="happy"]{color:#b8860b}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="stressed"]{color:#cc6600}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="nervous"]{color:#7b61c2}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="exhausted"]{color:#5a6878}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="frustrated"]{color:#cc4400}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="checked-out"]{color:#4a5560}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="alive"]{color:#2da65d}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="magnetic"]{color:#1a8fa5}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="steady"]{color:#c8952e}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="warm"]{color:#2da65d}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="commanding"]{color:#6b45b0}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="connecting"]{color:#1a8f70}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="zone"]{color:#b8860b}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="centered"]{color:#4a5a6a}
+body.v7-aether.coach-light .sense-hero-emotion[data-emotion="default"]{color:#6b5a40}
+
+/* Hero sub-badges row */
+.sense-hero-badges{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  margin-top:10px;flex-wrap:wrap;
+}
+.sense-badge{
+  display:inline-flex;align-items:center;gap:5px;padding:5px 14px;
+  border-radius:999px;font:600 10px/1 'DM Sans',sans-serif;
+  letter-spacing:0.05em;text-transform:uppercase;white-space:nowrap;
+  transition:all 0.8s cubic-bezier(0.4,0,0.2,1);
+}
+#sense-badge-imp{
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);color:var(--tx2,#a8a295);
+}
+#sense-badge-imp .sense-badge-dot{
+  width:8px;height:8px;border-radius:50%;transition:background 0.8s ease;
+}
+#sense-badge-primal{
+  background:rgba(212,168,85,0.10);border:1px solid rgba(212,168,85,0.18);
+  color:#d4a855;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:9px;
+}
+body.v7-aether.coach-light #sense-badge-imp{
+  background:rgba(0,0,0,0.03);border-color:rgba(0,0,0,0.06);color:#5a5a72;
+}
+body.v7-aether.coach-light #sense-badge-primal{
+  background:rgba(200,149,46,0.08);border-color:rgba(200,149,46,0.15);color:#b8882a;
+}
+
+/* ── Narrative body — the insight paragraph ── */
+.sense-narr{
+  padding:0 28px 24px;text-align:center;
+}
+.sense-narr-body{
+  font:400 15px/1.75 'DM Sans',sans-serif;color:rgba(200,195,185,0.85);
+  margin:0;max-width:480px;display:inline-block;
+}
+body.v7-aether.coach-light .sense-narr-body{color:#3a3a52;font-size:15px}
+
+/* ── Collapsible details ── */
+.sense-details-toggle{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:12px 18px;cursor:pointer;user-select:none;
+  border-top:1px solid rgba(255,255,255,0.05);
+  font:600 10px/1 'JetBrains Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--tx3,#6b6560);transition:color 0.3s ease,background 0.3s ease;
+}
+.sense-details-toggle:hover{color:var(--gold,#d4a855);background:rgba(255,255,255,0.02)}
+body.v7-aether.coach-light .sense-details-toggle{border-top-color:rgba(0,0,0,0.04)}
+body.v7-aether.coach-light .sense-details-toggle:hover{background:rgba(0,0,0,0.02);color:#b8882a}
+.sense-details-arrow{
+  display:inline-block;transition:transform 0.3s ease;font-size:11px;
+}
+.sense-details-toggle.open .sense-details-arrow{transform:rotate(180deg)}
+.sense-details{
+  max-height:0;overflow:hidden;transition:max-height 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+.sense-details.open{max-height:600px}
+
+/* ── Dimensions section ── */
+.sense-dims-section{
+  padding:14px 22px 10px;
+}
+.sense-dims-title{
+  font:700 9px/1 'JetBrains Mono',monospace;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--tx3,#6b6560);margin-bottom:10px;
+}
+.sense-dim-row{display:flex;align-items:center;gap:8px;padding:6px 0}
+.sense-dim-label{
+  font:600 10px/1 'DM Sans',sans-serif;letter-spacing:0.04em;text-transform:uppercase;
+  color:var(--tx3,#6b6560);width:82px;flex-shrink:0;
+}
+.sense-dim-lo{text-align:right}
+.sense-dim-hi{text-align:left}
+.sense-dim-track{
+  flex:1;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;
+  position:relative;min-width:80px;
+}
+body.v7-aether.coach-light .sense-dim-track{background:rgba(0,0,0,0.06)}
+.sense-dim-dot{
+  position:absolute;top:50%;width:16px;height:16px;border-radius:50%;
+  transform:translate(-50%,-50%);left:50%;
+  transition:left 0.9s cubic-bezier(0.4,0,0.2,1),box-shadow 0.8s ease;
+}
+#sense-dot-arousal{background:#e8a83c;box-shadow:0 0 12px rgba(232,168,60,0.45)}
+#sense-dot-valence{background:#6bcc8f;box-shadow:0 0 12px rgba(107,204,143,0.45)}
+#sense-dot-dominance{background:#9b7fd4;box-shadow:0 0 12px rgba(155,127,212,0.45)}
+body.v7-aether.coach-light #sense-dot-arousal{background:#c8952e;box-shadow:0 0 10px rgba(200,149,46,0.35)}
+body.v7-aether.coach-light #sense-dot-valence{background:#2da65d;box-shadow:0 0 10px rgba(45,166,93,0.35)}
+body.v7-aether.coach-light #sense-dot-dominance{background:#7b61c2;box-shadow:0 0 10px rgba(123,97,194,0.35)}
+.sense-dim-raw{
+  font:500 10px/1 'JetBrains Mono',monospace;color:var(--tx3);
+  width:38px;text-align:center;
+}
+
+/* ── Impressions section ── */
+.sense-imp-section{
+  padding:8px 22px 16px;border-top:1px solid rgba(255,255,255,0.05);
+}
+body.v7-aether.coach-light .sense-imp-section{border-top-color:rgba(0,0,0,0.04)}
+.sense-imp-title{
+  font:700 9px/1 'JetBrains Mono',monospace;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--tx3,#6b6560);margin-bottom:10px;
+}
+.sense-imp-row{display:flex;align-items:center;gap:8px;padding:5px 0}
+.sense-imp-label{
+  font:600 11px/1 'DM Sans',sans-serif;letter-spacing:0.04em;text-transform:uppercase;
+  color:var(--tx3,#6b6560);width:92px;flex-shrink:0;text-align:right;
+}
+.sense-imp-track{
+  flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;
+}
+body.v7-aether.coach-light .sense-imp-track{background:rgba(0,0,0,0.05)}
+.sense-imp-fill{
+  height:100%;width:0%;border-radius:3px;
+  transition:width 0.8s cubic-bezier(0.4,0,0.2,1);
+}
+.sense-imp-val{
+  font:600 11px/1 'JetBrains Mono',monospace;color:var(--tx2);width:30px;text-align:right;
+}
+.sense-imp-fill[data-imp="confidence"]{background:#e8a83c}
+.sense-imp-fill[data-imp="warmth"]{background:#6bcc8f}
+.sense-imp-fill[data-imp="authority"]{background:#9b7fd4}
+.sense-imp-fill[data-imp="engagement"]{background:#6bbccc}
+.sense-imp-fill[data-imp="uncertainty"]{background:#8b857b}
+body.v7-aether.coach-light .sense-imp-fill[data-imp="confidence"]{background:#c8952e}
+body.v7-aether.coach-light .sense-imp-fill[data-imp="warmth"]{background:#2da65d}
+body.v7-aether.coach-light .sense-imp-fill[data-imp="authority"]{background:#7b61c2}
+body.v7-aether.coach-light .sense-imp-fill[data-imp="engagement"]{background:#4a9fb5}
+body.v7-aether.coach-light .sense-imp-fill[data-imp="uncertainty"]{background:#9e9eb0}
+
+/* Coach-light ordering */
+body.v7-aether.coach-light #sense-panel{order:5 !important}
+
+/* ── Mobile ── */
+@media(max-width:768px){
+  #sense-panel{margin:12px 8px 16px}
+  .sense-hero{padding:24px 18px 16px}
+  .sense-hero-emotion{font-size:26px}
+  .sense-narr{padding:0 18px 18px}
+  .sense-narr-body{font-size:14px}
+  .sense-dims-section,.sense-imp-section{padding-left:16px;padding-right:16px}
+  .sense-dim-label{width:66px;font-size:9px}
+  .sense-imp-label{width:76px;font-size:10px}
+}
+@media(max-width:400px){
+  .sense-hero-emotion{font-size:22px}
+  .sense-badge{padding:4px 10px;font-size:9px}
+  .sense-dim-dot{width:12px;height:12px}
+  .sense-narr-body{font-size:13px;line-height:1.6}
+}
+</style>
+
+<script id="orator-sense-script">
+(function(){
+'use strict';
+if(window.__ORATOR_SENSE_LOADED)return;
+window.__ORATOR_SENSE_LOADED=true;
+
+// ═══════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════
+var SENSE_EMA=0.12; // ~278ms at 30Hz
+var SENSE_DISP_RATE=10; // dt multiplier for 60fps interp
+var NC=8; // channel count
+
+// Primal signal prototypes: [Loud, Pitch, Rate, Pause, Bright, PitchCons, HNR, AmpCons]
+var PRIMAL_NAMES=['Distress','Threat','Submission','Affiliation','Joy','Alert'];
+var PRIMAL_PROTOS=[
+  [ 0.0,+1.0,-0.5,+0.3,+0.5,-1.0,-0.8,-0.8], // DISTRESS
+  [+1.0,-0.3,+0.5,-0.5,+0.8,-0.3,-0.7,-0.3], // THREAT
+  [-0.7,+0.8,-0.5,+0.3,-0.3,+0.3,-0.3,+0.3], // SUBMISSION
+  [ 0.0, 0.0, 0.0, 0.0,-0.3,+0.5,+1.0,+0.7], // AFFILIATION
+  [+0.6,+0.5,+0.7,-0.6,+0.3,-0.3,+0.8,-0.2], // JOY
+  [+0.5,+0.8, 0.0,-0.3,+0.5,-0.5, 0.0,-0.5]  // ALERT
+];
+// Pre-compute prototype norms
+var PRIMAL_NORMS=[];
+for(var pi=0;pi<PRIMAL_PROTOS.length;pi++){
+  var pn=0;for(var pj=0;pj<NC;pj++)pn+=PRIMAL_PROTOS[pi][pj]*PRIMAL_PROTOS[pi][pj];
+  PRIMAL_NORMS.push(Math.sqrt(pn)||1);
+}
+
+var IMP_NAMES=['Confidence','Warmth','Authority','Engagement','Uncertainty'];
+var IMP_COLORS=['#c8952e','#2da65d','#7b61c2','#4a9fb5','#9e9eb0'];
+
+// ═══════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════
+var S={
+  // Dimensions (30Hz EMA)
+  arousal:0, valence:0, dominance:0,
+  // Display (60fps interpolated)
+  dArousal:0, dValence:0, dDominance:0,
+  // Primal signals (6 scores 0-1)
+  primal:[0,0,0,0,0,0],
+  primalTop:-1, primalScore:0,
+  // Impressions (5 scores 0-1)
+  imp:[0,0,0,0,0],
+  impTop:-1,
+  // UI state
+  ready:false, expanded:false, detailOpen:false,
+  booted:false,
+  // Timing
+  lastRenderTs:0,
+  // DOM refs
+  ui:{}
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function clamp(v,lo,hi){return v<lo?lo:v>hi?hi:v;}
+function safeG(name){try{return typeof window[name]!=='undefined'?window[name]:0;}catch(e){return 0;}}
+function safeArr(name,i){try{var a=window[name];return(a&&typeof a[i]==='number'&&isFinite(a[i]))?a[i]:0;}catch(e){return 0;}}
+
+// ═══════════════════════════════════════════════════════════════════
+// DIMENSION COMPUTATION (30Hz)
+// ═══════════════════════════════════════════════════════════════════
+function computeDimensions(){
+  var z0=safeArr('zN',0),z1=safeArr('zN',1),z2=safeArr('zN',2),z3=safeArr('zN',3);
+  var z4=safeArr('zN',4),z5=safeArr('zN',5),z6=safeArr('zN',6),z7=safeArr('zN',7);
+
+  // Arousal: pitch + loudness + rate + brightness
+  var rawA=0.30*z1 + 0.28*z0 + 0.22*z2 + 0.20*z4;
+  S.arousal+=(clamp(rawA,-1,1)-S.arousal)*SENSE_EMA;
+
+  // Valence: HNR + pitch stability + amp stability - excess pauses
+  var rawV=0.40*z6 + 0.25*z5 + 0.20*z7 - 0.15*Math.max(0,z3-0.3);
+  S.valence+=(clamp(rawV,-1,1)-S.valence)*SENSE_EMA;
+
+  // Dominance: loudness + LOW pitch (inverted) + stability
+  var rawD=0.35*z0 - 0.25*z1 + 0.20*z5 + 0.20*z7;
+  S.dominance+=(clamp(rawD,-1,1)-S.dominance)*SENSE_EMA;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PRIMAL SIGNAL MATCHING (cosine similarity)
+// ═══════════════════════════════════════════════════════════════════
+function matchPrimals(){
+  var z=[safeArr('zN',0),safeArr('zN',1),safeArr('zN',2),safeArr('zN',3),
+         safeArr('zN',4),safeArr('zN',5),safeArr('zN',6),safeArr('zN',7)];
+  var zNorm=0;
+  for(var i=0;i<NC;i++)zNorm+=z[i]*z[i];
+  zNorm=Math.sqrt(zNorm)||1;
+
+  var bestI=-1,bestS=-2;
+  for(var p=0;p<PRIMAL_PROTOS.length;p++){
+    var dot=0;
+    for(var j=0;j<NC;j++)dot+=z[j]*PRIMAL_PROTOS[p][j];
+    var cos=dot/(zNorm*PRIMAL_NORMS[p]);
+    var score=(cos+1)*0.5; // map [-1,1] → [0,1]
+    S.primal[p]+=(score-S.primal[p])*SENSE_EMA;
+    if(S.primal[p]>bestS){bestS=S.primal[p];bestI=p;}
+  }
+  S.primalTop=bestI;S.primalScore=bestS;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// IMPRESSION COMPUTATION
+// ═══════════════════════════════════════════════════════════════════
+function computeImpressions(){
+  var z0=safeArr('zN',0),z1=safeArr('zN',1),z2=safeArr('zN',2),z3=safeArr('zN',3);
+  var z4=safeArr('zN',4),z5=safeArr('zN',5),z6=safeArr('zN',6),z7=safeArr('zN',7);
+
+  // Confidence: low pitch variance + loud + stable + harmonic
+  var rawConf=0.30*clamp(z5,0,1) + 0.25*clamp((z0+0.5)/1.5,0,1) + 0.25*clamp(z7,0,1) + 0.20*clamp(z6,0,1);
+
+  // Warmth: moderate variation (penalize extremes) + HNR + low brightness + natural pauses
+  var midPitch=1-Math.min(1,Math.abs(z1)); // peaks at z=0
+  var midBright=1-Math.min(1,Math.abs(z4));
+  var rawWarm=0.30*clamp(z6,0,1) + 0.25*midPitch + 0.25*midBright + 0.20*(1-clamp(Math.abs(z3),0,1));
+
+  // Authority: low pitch + loud + slow + stable
+  var lowPitch=clamp((-z1+1)/2,0,1);
+  var rawAuth=0.30*lowPitch + 0.25*clamp((z0+0.5)/1.5,0,1) + 0.25*clamp((-z2+1)/2,0,1) + 0.20*clamp(z5,0,1);
+
+  // Engagement: wide pitch range + varied rate + dynamic loudness + HNR
+  var rawEng=0.30*clamp(Math.abs(z1),0,1) + 0.25*clamp(Math.abs(z2),0,1) + 0.25*clamp(Math.abs(z0),0,1) + 0.20*clamp(z6,0,1);
+
+  // Uncertainty: rising pitch + pauses + variable rate + quiet
+  var rawUnc=0.30*clamp(z1,0,1) + 0.25*clamp(z3,0,1) + 0.25*clamp(Math.abs(z2),0,1) + 0.20*clamp(-z0,0,1);
+
+  var raws=[rawConf,rawWarm,rawAuth,rawEng,rawUnc];
+  var bestI=-1,bestV=-1;
+  for(var i=0;i<5;i++){
+    S.imp[i]+=(clamp(raws[i],0,1)-S.imp[i])*SENSE_EMA;
+    if(S.imp[i]>bestV){bestV=S.imp[i];bestI=i;}
+  }
+  S.impTop=bestI>=0?bestI:0; // fallback to 0 if no signal
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MAIN 30Hz COMPUTATION
+// ═══════════════════════════════════════════════════════════════════
+var _csCount=0;
+function computeSense(){
+  _csCount++;
+  if(_csCount===1)console.log('[SENSE] computeSense() FIRST CALL');
+  if(_csCount===30)console.log('[SENSE] computeSense() reached 30 calls (1 second)');
+  var sw=safeG('sWarm');
+  var dds=safeG('dispDomState');
+  if(_csCount<=5)console.log('[SENSE] tick#'+_csCount+' sWarm='+sw+' dispDomState='+dds);
+  if(sw<30||dds>=6){
+    // Not ready — decay toward neutral
+    S.arousal*=0.95;S.valence*=0.95;S.dominance*=0.95;
+    for(var d=0;d<6;d++)S.primal[d]*=0.95;
+    for(var e=0;e<5;e++)S.imp[e]*=0.95;
+    return;
+  }
+  if(!S.ready){
+    S.ready=true;
+    console.log('[SENSE] S.ready=true! sWarm='+sw+' dispDomState='+dds);
+    var wrap=document.getElementById('atlas-wrap');
+    if(wrap)wrap.classList.add('sense-ready');
+    // Show the unified panel
+    if(S.ui.panel){
+      S.ui.panel.classList.add('sense-active');
+      console.log('[SENSE] Panel activated');
+    } else console.warn('[SENSE] Panel NOT FOUND');
+    console.log('[SENSE] Body classes:', document.body.className);
+  }
+  computeDimensions();
+  matchPrimals();
+  computeImpressions();
+  // Prime narrative immediately on first ready tick
+  if(S._lastNarrTag===undefined){senseNarrative();return;}
+  // Debounce narrative computation (every ~2s at 30Hz = ~60 ticks)
+  if(!S._narrTick)S._narrTick=0;
+  S._narrTick++;
+  if(S._narrTick%60===0)senseNarrative();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 60fps DISPLAY INTERPOLATION
+// ═══════════════════════════════════════════════════════════════════
+function senseRender(ts){
+  var dt=S.lastRenderTs>0?Math.min(0.1,(ts-S.lastRenderTs)*0.001):0.016;
+  S.lastRenderTs=ts;
+  var a=Math.min(1,dt*SENSE_DISP_RATE);
+  S.dArousal+=(S.arousal-S.dArousal)*a;
+  S.dValence+=(S.valence-S.dValence)*a;
+  S.dDominance+=(S.dominance-S.dDominance)*a;
+
+  // Update orb overlay colors
+  senseUpdateOrb();
+  // Update dimension bar positions
+  senseUpdateDims();
+  // Update impression badge
+  senseUpdateBadge();
+  // Update rich narrative card (debounced to every 2.5s)
+  if(S._lastNarrRenderTs===undefined){S._lastNarrRenderTs=ts;senseRenderNarrative();}
+  else if(ts-S._lastNarrRenderTs>2500){S._lastNarrRenderTs=ts;senseRenderNarrative();}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ORB COLOR MAPPING
+// ═══════════════════════════════════════════════════════════════════
+function lerpC(a,b,t){return Math.round(a+(b-a)*t);}
+
+function senseUpdateOrb(){
+  var ov=S.ui.orbOverlay;if(!ov)return;
+  if(!S.ready){return;}
+  var isCoach=document.body.classList.contains('coach-light');
+  // Arousal → warm color: blue(calm) to amber(activated)
+  var at=(S.dArousal+1)*0.5; // 0=calm, 1=activated
+  var wr=lerpC(100,225,at),wg=lerpC(140,155,at),wb=lerpC(200,55,at);
+  // Valence → tint: purple(neg) to green-gold(pos)
+  var vt=(S.dValence+1)*0.5; // 0=neg, 1=pos
+  var tr=lerpC(130,140,vt),tg=lerpC(90,185,vt),tb=lerpC(180,70,vt);
+  // Stronger opacity for visibility
+  var innerA=isCoach?0.28:0.20;
+  var outerA=isCoach?0.16:0.12;
+  ov.style.background='radial-gradient(ellipse at 48% 42%,rgba('+wr+','+wg+','+wb+','+innerA+'),rgba('+tr+','+tg+','+tb+','+outerA+'))';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DIMENSION BAR UPDATES
+// ═══════════════════════════════════════════════════════════════════
+function senseUpdateDims(){
+  var da=S.ui.dotA,dv=S.ui.dotV,dd=S.ui.dotD;
+  if(da)da.style.left=((S.dArousal+1)*50).toFixed(1)+'%';
+  if(dv)dv.style.left=((S.dValence+1)*50).toFixed(1)+'%';
+  if(dd)dd.style.left=((S.dDominance+1)*50).toFixed(1)+'%';
+  // Raw values for Lab mode
+  if(S.ui.rawA)S.ui.rawA.textContent=S.dArousal.toFixed(2);
+  if(S.ui.rawV)S.ui.rawV.textContent=S.dValence.toFixed(2);
+  if(S.ui.rawD)S.ui.rawD.textContent=S.dDominance.toFixed(2);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// IMPRESSION BADGE
+// ═══════════════════════════════════════════════════════════════════
+var _lastBadgeText='',_lastPrimalText='';
+function senseUpdateBadge(){
+  if(!S.ready||S.impTop<0)return;
+
+  // Impression badge
+  var txt=IMP_NAMES[S.impTop];
+  if(txt!==_lastBadgeText){
+    _lastBadgeText=txt;
+    if(S.ui.chipText)S.ui.chipText.textContent=txt;
+    if(S.ui.chipDot)S.ui.chipDot.style.background=IMP_COLORS[S.impTop];
+  }
+
+  // Primal/Emotion badge — Tier 0 emotions OVERRIDE the primal label
+  // so the badge matches the narrative (no "Distress" when narrative says "Sad")
+  var heroTag=S._lastHero||'';
+  var heroK=S._lastHeroKey||'';
+  // Tier 0 emotions use the hero text as the primal badge
+  var TIER0_KEYS={crying:1,sad:1,angry:1,happy:1,stressed:1,'checked-out':1,nervous:1,frustrated:1,exhausted:1};
+  var isTier0=heroK&&TIER0_KEYS[heroK];
+  var ptxt=isTier0?heroTag:(S.primalTop>=0?PRIMAL_NAMES[S.primalTop]:'');
+  if(ptxt!==_lastPrimalText){
+    _lastPrimalText=ptxt;
+    if(S.ui.primalLabel)S.ui.primalLabel.textContent=ptxt;
+    if(S.ui.primalTag)S.ui.primalTag.textContent=ptxt||'\u2014';
+  }
+
+  // Impression bars
+  for(var i=0;i<5;i++){
+    var fill=S.ui.impFills[i],val=S.ui.impVals[i];
+    if(fill)fill.style.width=(S.imp[i]*100).toFixed(0)+'%';
+    if(val)val.textContent=Math.round(S.imp[i]*100);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NARRATIVE ENHANCEMENT
+// ═══════════════════════════════════════════════════════════════════
+function senseNarrative(){
+  if(!S.ready)return '';
+  var a=S.arousal,v=S.valence,d=S.dominance;
+  var imp=IMP_NAMES[S.impTop]||'';
+  var primal=S.primalTop>=0?PRIMAL_NAMES[S.primalTop]:'';
+  var ps=S.primalScore;
+
+  // Human-first narrative with HERO text
+  // hero = the big bold word(s) on screen, heroKey = CSS color key, body = insight paragraph
+  var hero='',heroKey='default',body='';
+
+  // Read raw z-scored channels for direct emotion detection
+  var zLoud=safeArr('zN',0),zPitch=safeArr('zN',1),zRate=safeArr('zN',2);
+  var zPause=safeArr('zN',3),zBright=safeArr('zN',4),zPitchCons=safeArr('zN',5);
+  var zHNR=safeArr('zN',6),zAmpCons=safeArr('zN',7);
+
+  // ══════════════════════════════════════════════════════════════
+  // TIER 0: THE BLIND MAN — universal human emotions anyone would
+  // recognize without speaking the language. These override everything.
+  // ══════════════════════════════════════════════════════════════
+
+  // CRYING: pitch breaks + amplitude waves (sobbing) + very rough voice
+  if(zPitchCons<-0.9&&zAmpCons<-0.7&&zHNR<-0.6&&zPause>0.3){
+    hero='Crying';heroKey='crying';
+    body='I can hear it in your voice. The breaks, the unevenness \u2014 your body is releasing something. That\u2019s not weakness, that\u2019s being human. Take all the time you need.';
+  }
+  // SAD: low everything — quiet, slow, narrow pitch, long pauses
+  else if(zPitch<-0.6&&zLoud<-0.5&&zRate<-0.4&&zPause>0.3&&zBright<-0.3&&a<-0.20&&v<-0.10){
+    hero='Sad';heroKey='sad';
+    body='Your voice has gone quiet and heavy. Everything has slowed down \u2014 the pace, the energy, the brightness. Anyone listening would hear it, even without understanding a word. If this is where you are, that\u2019s okay. If you want to shift it, stand up and take three deep breaths.';
+  }
+  // ANGRY: loud, intense, rough harmonics, fast, bright, pressed
+  else if(zLoud>0.7&&zHNR<-0.5&&zBright>0.4&&zRate>0.2&&a>0.30&&v<-0.10){
+    hero='Angry';heroKey='angry';
+    body='Your voice has an edge right now \u2014 louder, rougher, pushing hard. Everyone in the room can feel it. If that\u2019s intentional, it\u2019s commanding. If not, your voice is doing more work than your words. One pause can change the whole temperature.';
+  }
+  // HAPPY: high pitch, wide range, fast, loud, clean harmonics, bright
+  else if(zPitch>0.4&&zLoud>0.2&&zRate>0.3&&zHNR>0.3&&zBright>0.2&&v>0.15){
+    hero='Happy';heroKey='happy';
+    body='There\u2019s a lightness in your voice that\u2019s unmistakable. Your pitch is up, your pace has quickened, and there\u2019s a clarity that only comes from genuine positive feeling. People around you are picking up on this whether they realize it or not.';
+  }
+  // STRESSED/ANXIOUS: high pitch, unstable, fast, breathy, tense
+  else if(zPitch>0.3&&zPitchCons<-0.6&&zRate>0.3&&zHNR<-0.3&&zAmpCons<-0.4){
+    hero='Stressed';heroKey='stressed';
+    body='Your voice is moving fast and tight \u2014 higher than usual, a little shaky, pushing through without settling. A listener would hear someone under pressure. Even five seconds of deliberate silence can bring it down a notch.';
+  }
+  // BORED/CHECKED OUT: flat pitch, low energy, slow, monotone
+  else if(Math.abs(zPitch)<0.3&&zPitchCons>0.3&&zLoud<-0.2&&zRate<-0.15&&Math.abs(zBright)<0.4&&a<-0.10){
+    hero='Checked Out';heroKey='checked-out';
+    body='Your voice has gone flat \u2014 same pitch, same pace, same volume. It\u2019s the vocal equivalent of a blank expression. If you want to pull listeners back, change just one thing: speed up, get louder, or ask a question.';
+  }
+  // NERVOUS: rising pitch, more pauses, variable rate, quieter
+  else if(zPitch>0.2&&zPause>0.4&&zLoud<-0.2&&zPitchCons<-0.4&&zAmpCons<-0.3){
+    hero='Nervous';heroKey='nervous';
+    body='Your voice is giving away some nerves \u2014 rising in pitch, pausing more, getting quieter. The fix is physical, not mental: plant your feet, drop your shoulders, and start your next sentence low and slow. Your voice will follow your body.';
+  }
+  // FRUSTRATED: building tension
+  else if(zLoud>0.5&&zPitch>0.3&&zHNR<-0.4&&zRate>0.2&&zBright>0.3&&d>0.10){
+    hero='Frustrated';heroKey='frustrated';
+    body='You\u2019re getting louder and tighter. The pressure is building and your voice is showing it. People can feel the temperature rising. A deliberate pause right now \u2014 three full seconds of nothing \u2014 would be the most powerful thing you could say.';
+  }
+  // TIRED/EXHAUSTED
+  else if(zLoud<-0.5&&zRate<-0.5&&zPitch<-0.3&&zHNR<-0.2&&zPause>0.4&&a<-0.25){
+    hero='Exhausted';heroKey='exhausted';
+    body='Your voice is running on empty \u2014 quieter, slower, heavier than usual. Your body is telling you it needs a break. If you have to keep going, stand up and move. Physical energy feeds vocal energy.';
+  }
+
+  // ── TIER 1: Strong primal signal ──
+  else if(primal==='Joy'&&ps>0.60&&v>0.15){
+    hero='Alive';heroKey='alive';
+    body='Your voice has a quality that makes people smile before they process your words. There\u2019s a brightness and openness that draws people in and makes them want to agree with you. Whatever you\u2019re feeling, it\u2019s landing.';
+  }
+  else if(primal==='Distress'&&ps>0.50){
+    hero='Strained';heroKey='stressed';
+    body='Your voice is tight right now. You may not feel it yet, but your body is already broadcasting strain. People will sense this before they understand why. One slow breath before your next sentence can reset the signal instantly.';
+  }
+  else if(primal==='Threat'&&ps>0.50&&d>0.20){
+    hero='Intense';heroKey='angry';
+    body='You\u2019re coming across as very forceful. If intentional, this is powerful \u2014 people will pay attention. If not, your voice is projecting more edge than you might realize. A softer start to your next sentence would shift this.';
+  }
+  else if(primal==='Submission'&&ps>0.50&&d<-0.15){
+    hero='Yielding';heroKey='nervous';
+    body='Your voice is making itself smaller \u2014 quieter, higher, almost asking permission. Sometimes that invites others in. But if you need to hold your point, land your next sentence with your voice going down, not up.';
+  }
+  else if(primal==='Affiliation'&&ps>0.55){
+    hero='Connecting';heroKey='connecting';
+    body='You sound approachable and trustworthy right now. Your voice has the quality that makes people open up \u2014 the sound equivalent of leaning in and making eye contact. This is how rapport is built.';
+  }
+  else if(primal==='Alert'&&ps>0.50){
+    hero='Alert';heroKey='stressed';
+    body='Something just changed in your voice \u2014 a sudden spike that says \"pay attention.\" Everyone nearby would notice, even if they couldn\u2019t explain why. Use it intentionally and it\u2019s a spotlight. Let it linger and it becomes alarm.';
+  }
+
+  // ── TIER 2: Dimension-driven ──
+  else if(a>0.35&&v>0.20){
+    hero='In the Zone';heroKey='zone';
+    body='This is your sweet spot. Energized and genuine, not forced. People hearing you now would call you passionate and engaging. This is the voice that persuades, inspires, and gets remembered.';
+  }
+  else if(a>0.35&&v<-0.15){
+    hero='Running Hot';heroKey='frustrated';
+    body='High energy but with friction \u2014 more push than pull. Listeners may feel pressured rather than inspired. Slow down for one sentence and let the silence after it do the work.';
+  }
+  else if(a<-0.25&&v>0.15){
+    hero='Quiet Strength';heroKey='warm';
+    body='Calm and reassuring. This is the voice people trust with bad news, hard truths, and vulnerable moments. It says \"everything is going to be okay.\" Powerful in its stillness.';
+  }
+  else if(a<-0.25&&v<-0.15){
+    hero='Fading Out';heroKey='exhausted';
+    body='Your energy is dropping and it shows. Listeners may start to disengage \u2014 not because of what you\u2019re saying, but because your voice is losing its pull. Sit up, breathe, and bring more intention to your next few words.';
+  }
+
+  // ── TIER 3: Impression-driven ──
+  else if(imp==='Confidence'&&S.imp[0]>0.50){
+    hero='Rock Steady';heroKey='steady';
+    body='Your voice doesn\u2019t waver. That\u2019s rare and people notice. When you speak like this, listeners assume you know what you\u2019re talking about before they\u2019ve processed your argument. The voice of someone who has earned the room.';
+  }
+  else if(imp==='Warmth'&&S.imp[1]>0.45){
+    hero='Warm';heroKey='warm';
+    body='You sound genuinely caring. This quality makes people feel heard and valued. In negotiation, it builds bridges. In difficult conversations, it creates safety. People lean in when they hear warmth like this.';
+  }
+  else if(imp==='Authority'&&S.imp[2]>0.50){
+    hero='Commanding';heroKey='commanding';
+    body='Your voice has weight \u2014 grounded, deliberate, unhurried. This is how leaders sound when they want everyone to stop and listen. People follow voices like this because it signals \"I know where we\u2019re going.\"';
+  }
+  else if(imp==='Engagement'&&S.imp[3]>0.45){
+    hero='Magnetic';heroKey='magnetic';
+    body='You\u2019re speaking with the kind of variation that pulls people in. Your voice is telling a story even when your words aren\u2019t. This is what separates forgettable speakers from captivating ones.';
+  }
+  else if(imp==='Uncertainty'&&S.imp[4]>0.40){
+    hero='Searching';heroKey='nervous';
+    body='Your voice is searching \u2014 rising at the ends of phrases, pausing mid-thought. That\u2019s normal when thinking something through. To sound more decided, finish your next sentence like a period, not a question mark.';
+  }
+
+  // ── TIER 4: Neutral/transitional ──
+  else if(Math.abs(a)<0.15&&Math.abs(v)<0.15&&Math.abs(d)<0.15){
+    hero='Centered';heroKey='centered';
+    body='Composed, balanced, ready. A good place to be before a big moment. From here you can choose: more energy to inspire, more calm to reassure, more force to command. The canvas is blank.';
+  }
+  else {
+    hero='Settling In';heroKey='default';
+    body='Your voice pattern is still forming. Keep speaking naturally and a clearer picture will emerge in a few moments.';
+  }
+
+  S._lastHero=hero;
+  S._lastHeroKey=heroKey;
+  S._lastNarrTag=hero; // keep for badge sync
+  S._lastNarrBody=body;
+  return body;
+}
+
+// Render hero + narrative into the panel
+function senseRenderNarrative(){
+  if(!S.ready)return;
+  var hero=S._lastHero||'';
+  var heroKey=S._lastHeroKey||'default';
+  var body=S._lastNarrBody||'';
+  if(!hero&&!body)return;
+
+  // Update hero emotion (the BIG text)
+  var hEl=S.ui.heroEmotion;
+  if(hEl&&hEl._lastHero!==hero){
+    hEl.textContent=hero;
+    hEl.setAttribute('data-emotion',heroKey);
+    hEl._lastHero=hero;
+  }
+  // Update narrative body
+  if(S.ui.narrBody&&S.ui.narrBody._last!==body){
+    S.ui.narrBody.textContent=body;S.ui.narrBody._last=body;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DOM INJECTION
+// ═══════════════════════════════════════════════════════════════════
+function dimBarHTML(lo,hi,dimKey){
+  return '<div class="sense-dim-row">'+
+    '<span class="sense-dim-label sense-dim-lo">'+lo+'</span>'+
+    '<div class="sense-dim-track"><div class="sense-dim-dot" id="sense-dot-'+dimKey+'"></div></div>'+
+    '<span class="sense-dim-label sense-dim-hi">'+hi+'</span>'+
+    '<span class="sense-dim-raw" id="sense-raw-'+dimKey+'">0.00</span>'+
+  '</div>';
+}
+
+function impBarHTML(name,key){
+  return '<div class="sense-imp-row">'+
+    '<span class="sense-imp-label">'+name+'</span>'+
+    '<div class="sense-imp-track"><div class="sense-imp-fill" id="sense-fill-'+key+'" data-imp="'+key+'"></div></div>'+
+    '<span class="sense-imp-val" id="sense-val-'+key+'">0</span>'+
+  '</div>';
+}
+
+function senseBootUI(){
+  if(S.booted)return;S.booted=true;
+  var wrap=document.getElementById('atlas-wrap');
+  var interp=document.getElementById('interp');
+  if(!wrap||!interp)return;
+
+  // 1. Orb overlay (inside the radar/orb area)
+  var ov=document.createElement('div');
+  ov.id='sense-orb-overlay';
+  wrap.insertBefore(ov,wrap.firstChild);
+  S.ui.orbOverlay=ov;
+
+  // 2. Primal label on orb
+  var pl=document.createElement('div');
+  pl.id='sense-primal';
+  wrap.appendChild(pl);
+  S.ui.primalLabel=pl;
+
+  // 3. Build the hero-first Sense Panel
+  var panel=document.createElement('div');
+  panel.id='sense-panel';
+  panel.innerHTML=
+    // ═══ HERO: the one thing you can't miss ═══
+    '<div class="sense-hero">'+
+      '<div class="sense-hero-label">Right now, you sound</div>'+
+      '<div class="sense-hero-emotion" id="sense-hero-emotion" data-emotion="default">Warming Up</div>'+
+      '<div class="sense-hero-badges">'+
+        '<span class="sense-badge" id="sense-badge-primal">\u2014</span>'+
+        '<span class="sense-badge" id="sense-badge-imp"><span class="sense-badge-dot" id="sense-imp-dot"></span><span id="sense-imp-text">\u2014</span></span>'+
+      '</div>'+
+    '</div>'+
+    // ═══ NARRATIVE: the insight paragraph ═══
+    '<div class="sense-narr" id="sense-narr-wrap">'+
+      '<p class="sense-narr-body" id="sense-narr-body">Keep speaking naturally. I\u2019m learning the unique character of your voice so I can tell you how you\u2019re really coming across.</p>'+
+    '</div>'+
+    // ═══ COLLAPSIBLE DETAILS: dims + impressions ═══
+    '<div class="sense-details-toggle" id="sense-details-toggle">'+
+      '<span>Voice Details</span>'+
+      '<span class="sense-details-arrow">\u25BC</span>'+
+    '</div>'+
+    '<div class="sense-details" id="sense-details">'+
+      // Dimensions
+      '<div class="sense-dims-section">'+
+        '<div class="sense-dims-title">How You\u2019re Coming Across</div>'+
+        dimBarHTML('Calm','Activated','arousal')+
+        dimBarHTML('Negative','Positive','valence')+
+        dimBarHTML('Yielding','Commanding','dominance')+
+      '</div>'+
+      // Impressions
+      '<div class="sense-imp-section">'+
+        '<div class="sense-imp-title">What Listeners Feel</div>'+
+        impBarHTML('Confidence','confidence')+
+        impBarHTML('Warmth','warmth')+
+        impBarHTML('Authority','authority')+
+        impBarHTML('Engagement','engagement')+
+        impBarHTML('Uncertainty','uncertainty')+
+      '</div>'+
+    '</div>';
+
+  // Insert panel after #interp
+  if(interp.parentNode)interp.parentNode.insertBefore(panel,interp.nextSibling);
+  S.ui.panel=panel;
+
+  // Wire up collapsible toggle
+  var toggle=document.getElementById('sense-details-toggle');
+  var details=document.getElementById('sense-details');
+  if(toggle&&details){
+    toggle.addEventListener('click',function(){
+      var isOpen=details.classList.toggle('open');
+      toggle.classList.toggle('open',isOpen);
+    });
+  }
+
+  // Cache all DOM refs
+  S.ui.heroEmotion=document.getElementById('sense-hero-emotion');
+  S.ui.dotA=document.getElementById('sense-dot-arousal');
+  S.ui.dotV=document.getElementById('sense-dot-valence');
+  S.ui.dotD=document.getElementById('sense-dot-dominance');
+  S.ui.rawA=document.getElementById('sense-raw-arousal');
+  S.ui.rawV=document.getElementById('sense-raw-valence');
+  S.ui.rawD=document.getElementById('sense-raw-dominance');
+  S.ui.chipText=document.getElementById('sense-imp-text');
+  S.ui.chipDot=document.getElementById('sense-imp-dot');
+  S.ui.primalTag=document.getElementById('sense-badge-primal');
+  S.ui.narrBody=document.getElementById('sense-narr-body');
+  S.ui.impFills=[];S.ui.impVals=[];
+  var ikeys=['confidence','warmth','authority','engagement','uncertainty'];
+  for(var i=0;i<5;i++){
+    S.ui.impFills.push(document.getElementById('sense-fill-'+ikeys[i]));
+    S.ui.impVals.push(document.getElementById('sense-val-'+ikeys[i]));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MONKEY-PATCHES (additive, error-isolated)
+// ═══════════════════════════════════════════════════════════════════
+
+function senseHooks(){
+  // Hook applyUI → computeSense at 30Hz
+  if(typeof window.applyUI==='function'){
+    var _origApply=window.applyUI;
+    window.applyUI=function(now,force){
+      var out=_origApply(now,force);
+      try{computeSense();}catch(e){}
+      return out;
+    };
+  }
+
+  // Hook render → senseRender at 60fps
+  if(typeof window.render==='function'){
+    var _origRender=window.render;
+    window.render=function(ts){
+      _origRender(ts);
+      try{senseRender(ts||performance.now());}catch(e){}
+    };
+  }
+
+  // Extend _interpretCoach → append short signal tag (not full narrative — card handles that)
+  if(typeof window._interpretCoach==='function'){
+    var _origCoach=window._interpretCoach;
+    window._interpretCoach=function(){
+      var base=_origCoach();
+      try{
+        // Only append the signal tag as a brief cue, not the full narrative body
+        // (the unified #sense-panel card renders the full interpretation)
+        var tag=S._lastNarrTag;
+        if(tag&&S.ready) base+=' \u00B7 '+tag;
+      }catch(e){}
+      return base;
+    };
+  }
+
+  // Extend updateOrbGlow → update sense overlay
+  if(typeof window.updateOrbGlow==='function'){
+    var _origGlow=window.updateOrbGlow;
+    window.updateOrbGlow=function(idx){
+      _origGlow(idx);
+      try{senseUpdateOrb();}catch(e){}
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════════
+function senseBoot(){
+  console.log('[SENSE] senseBoot() starting...');
+  senseBootUI();
+  console.log('[SENSE] senseBootUI done. Elements created:', {
+    orbOverlay:!!S.ui.orbOverlay, primalLabel:!!S.ui.primalLabel,
+    panel:!!S.ui.panel, dotA:!!S.ui.dotA,
+    chipText:!!S.ui.chipText, narrTag:!!S.ui.narrTag,
+    impFills:S.ui.impFills?S.ui.impFills.length:0
+  });
+  senseHooks();
+  var hookedApply=(typeof window.applyUI==='function');
+  var hookedRender=(typeof window.render==='function');
+  var hookedCoach=(typeof window._interpretCoach==='function');
+  console.log('[SENSE] senseHooks done. Hooked:', {applyUI:hookedApply, render:hookedRender, _interpretCoach:hookedCoach});
+  console.log('[SENSE] Body classes:', document.body.className);
+}
+// ── Visible debug badge (top-right corner) ──
+var _dbg=document.createElement('div');
+_dbg.id='sense-dbg';
+_dbg.style.cssText='position:fixed;top:44px;right:4px;z-index:9999;padding:4px 8px;border-radius:6px;background:rgba(0,0,0,0.85);color:#0f0;font:bold 9px/1.4 monospace;pointer-events:none;max-width:200px;white-space:pre-wrap;';
+document.body.appendChild(_dbg);
+_dbg.textContent='SENSE: booting...';
+var _dbgCount=0;
+setInterval(function(){
+  _dbgCount++;
+  var lines=[];
+  lines.push('SENSE v1.0');
+  lines.push('boot:'+S.booted+' rdy:'+S.ready+' panel:'+!!S.ui.panel);
+  lines.push('hook calls:'+_csCount);
+  if(typeof sWarm!=='undefined')lines.push('sWarm:'+window.sWarm);
+  else lines.push('sWarm: N/A (not on window?)');
+  if(typeof dispDomState!=='undefined')lines.push('dDS:'+window.dispDomState);
+  else lines.push('dDS: N/A');
+  if(S.ready){
+    lines.push('A:'+S.arousal.toFixed(2)+' V:'+S.valence.toFixed(2)+' D:'+S.dominance.toFixed(2));
+    lines.push('P:'+PRIMAL_NAMES[S.primalTop]+' ('+S.primalScore.toFixed(2)+')');
+    lines.push('I:'+IMP_NAMES[S.impTop]);
+    lines.push('Hero: '+(S._lastHero||'none')+' ['+( S._lastHeroKey||'')+']');
+  }
+  _dbg.textContent=lines.join('\n');
+  _dbg.style.color=S.ready?'#0f0':(_csCount>0?'#ff0':'#f55');
+},500);
+
+// Expose sense debug state
+window.__SENSE_DEBUG=function(){
+  return {
+    ready:S.ready, booted:S.booted,
+    arousal:S.arousal.toFixed(3), valence:S.valence.toFixed(3), dominance:S.dominance.toFixed(3),
+    primalTop:S.primalTop>=0?PRIMAL_NAMES[S.primalTop]:'none',
+    primalScore:S.primalScore.toFixed(3),
+    impTop:S.impTop>=0?IMP_NAMES[S.impTop]:'none',
+    imp:S.imp.map(function(v){return v.toFixed(3);}),
+    narrTag:S._lastNarrTag||'(none)',
+    narrBody:(S._lastNarrBody||'').substring(0,60)+'...',
+    panelEl:!!document.getElementById('sense-panel'),
+    narrTagEl:!!document.getElementById('sense-narr-tag'),
+    impBadgeEl:!!document.getElementById('sense-badge-imp'),
+    sWarm:typeof sWarm!=='undefined'?sWarm:'N/A',
+    dispDomState:typeof dispDomState!=='undefined'?dispDomState:'N/A'
+  };
+};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',senseBoot);
+else setTimeout(senseBoot,0);
+
+})();
+</script>
+
+<style id="first-run-surface-style">
+.flow-strip{
+  display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
+  margin:0 auto 18px;max-width:560px;
+}
+.flow-step{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:28px;padding:0 12px;border-radius:999px;
+  border:1px solid rgba(0,0,0,0.06);
+  background:rgba(0,0,0,0.02);
+  color:var(--tx3,#9e9eb0);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  white-space:nowrap;transition:all 0.4s ease;
+}
+.flow-step.done{
+  border-color:rgba(45,166,93,0.2);background:rgba(45,166,93,0.06);color:#2da65d;
+}
+.flow-step.on{
+  border-color:rgba(26,26,46,0.15);
+  background:linear-gradient(180deg,rgba(26,26,46,0.08),rgba(200,149,46,0.06));
+  color:#1a1a2e;box-shadow:0 6px 20px rgba(0,0,0,0.06);
+}
+/* Dark/Aether overrides for flow steps */
+body:not(.coach-light) .flow-step{
+  border-color:rgba(255,255,255,0.10);background:rgba(255,255,255,0.03);color:var(--tx3);
+}
+body:not(.coach-light) .flow-step.done{
+  border-color:rgba(107,204,143,0.22);background:rgba(107,204,143,0.08);color:#9fd8af;
+}
+body:not(.coach-light) .flow-step.on{
+  border-color:rgba(127,210,255,0.28);
+  background:linear-gradient(180deg,rgba(127,210,255,0.18),rgba(107,242,207,0.08));
+  color:#eaf7ff;box-shadow:0 10px 28px rgba(23,118,210,0.14);
+}
+.flow-arr{color:var(--tx3,#9e9eb0);font-size:13px;line-height:1}
+#start .flow-strip{margin-bottom:22px}
+#mic-ov .flow-strip,#cal-ov .flow-strip,#bl-ov .flow-strip{margin-top:2px;margin-bottom:16px}
+#surface-quickbar{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  padding:8px 14px;background:var(--surface,rgba(255,255,255,0.92));backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(0,0,0,0.03);flex-shrink:0;
+  transition:all 0.3s ease;
+}
+body:not(.coach-light) #surface-quickbar{
+  background:rgba(8,9,15,0.58);backdrop-filter:blur(12px);
+  border-bottom-color:rgba(255,255,255,0.04);
+}
+#surface-flow{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;flex:1 1 260px;
+  font-size:11px;color:var(--tx2,#5a5a72);line-height:1.35;
+}
+#surface-flow-badge{
+  display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:0 10px;
+  border-radius:999px;border:1px solid rgba(0,0,0,0.06);background:rgba(0,0,0,0.02);
+  font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#1a1a2e;white-space:nowrap;
+}
+body:not(.coach-light) #surface-flow-badge{
+  border-color:rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#d8e8f7;
+}
+#surface-flow-text{min-width:0}
+#surface-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+#surface-actions .meta-field{margin:0}
+#surface-actions .meta-input{min-width:132px}
+#advanced-toggle{
+  display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:6px 12px;
+  border-radius:12px;border:1px solid rgba(0,0,0,0.06);background:rgba(0,0,0,0.02);
+  color:var(--tx,#1a1a2e);cursor:pointer;font:600 11px 'DM Sans',sans-serif;
+  transition:all 0.25s ease;
+}
+body:not(.coach-light) #advanced-toggle{
+  border-color:rgba(255,255,255,0.10);background:rgba(255,255,255,0.04);color:var(--tx);
+}
+#advanced-toggle:hover{background:rgba(0,0,0,0.04)}
+body:not(.coach-light) #advanced-toggle:hover{background:rgba(255,255,255,0.07)}
+#advanced-head{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold,#c8952e);white-space:nowrap}
+#advanced-summary{font-size:10px;color:var(--tx2,#5a5a72);white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+#advanced-arrow{font-size:10px;color:var(--tx3,#9e9eb0);transition:transform .18s ease}
+#advanced-shell[data-open="1"] #advanced-arrow{transform:rotate(180deg)}
+#advanced-panel{display:block}
+#advanced-panel[hidden]{display:none !important}
+#advanced-shell{flex-shrink:0}
+#advanced-shell[data-open="0"] #meta-bar,
+#advanced-shell[data-open="0"] #protocol-bar,
+#advanced-shell[data-open="0"] #protocol-script{display:none}
+body.v7-aether #surface-quickbar,
+body.v7-aether #advanced-shell{
+  background:rgba(8,19,34,0.62) !important;backdrop-filter:blur(18px) saturate(1.15);
+  border-color:rgba(145,180,230,0.10) !important;
+}
+body.v7-aether.coach-light #surface-quickbar,
+body.v7-aether.coach-light #advanced-shell{
+  background:var(--surface) !important;backdrop-filter:blur(20px) !important;
+  border-color:rgba(0,0,0,0.03) !important;
+}
+body.v7-aether #advanced-toggle,
+body.v7-aether #surface-flow-badge{
+  border-radius:12px !important;border:1px solid rgba(145,180,230,0.12) !important;
+  box-shadow:0 18px 50px rgba(0,0,0,0.18);
+}
+body.v7-aether.coach-light #advanced-toggle,
+body.v7-aether.coach-light #surface-flow-badge{
+  border:1px solid rgba(0,0,0,0.06) !important;box-shadow:0 4px 16px rgba(0,0,0,0.04) !important;
+}
+body.v7-aether #advanced-toggle{
+  background:linear-gradient(180deg, rgba(255,255,255,0.085), rgba(255,255,255,0.032)) !important;
+}
+body.v7-aether.coach-light #advanced-toggle{
+  background:rgba(0,0,0,0.02) !important;
+}
+@media (max-width:768px){
+  #surface-quickbar{padding:6px 8px;gap:6px}
+  #surface-flow{font-size:10px}
+  #surface-flow-badge{min-height:22px;font-size:9px;padding:0 8px}
+  #surface-actions{width:100%;justify-content:space-between}
+  #surface-actions .meta-field{flex:1 1 auto}
+  #surface-actions .meta-input{min-width:112px}
+  #advanced-toggle{flex:1 1 180px;justify-content:space-between;padding:6px 10px}
+  #advanced-summary{max-width:44vw}
+}
+@media (max-width:560px){
+  .flow-strip{gap:6px}
+  .flow-step{font-size:9px;padding:0 10px;min-height:26px}
+  .flow-arr{display:none}
+  #surface-flow{flex-basis:100%}
+  #surface-actions{gap:6px}
+  #surface-actions .meta-field{width:auto}
+  #advanced-summary{max-width:38vw}
+}
+</style>
+<script id="first-run-surface-script">
+(function(){
+  if(window.CHORUS_FIRST_RUN_SURFACE_PATCHED)return;
+  window.CHORUS_FIRST_RUN_SURFACE_PATCHED=true;
+
+  var SURFACE_BUILD={
+    version:'7.3.0',
+    build:'7.3.0-orator-breathe-hybrid',
+    title:'Orator v7.3.0 \u2014 Breathe + Aether + VPD'
+  };
+  var ADV_PREF_KEY='chorus.v7.firstRunSurface.advancedOpen';
+  var surfaceState={open:false,initialized:false,lastFlowText:'',lastAdvSummary:''};
+
+  function setText(el,val){ if(el && el.textContent!==val) el.textContent=val; }
+  function byId(id){ return document.getElementById(id); }
+  function safeLSGet(key){
+    try{ return window.localStorage?localStorage.getItem(key):null; }catch(e){ return null; }
+  }
+  function safeLSSet(key,val){
+    try{ if(window.localStorage) localStorage.setItem(key,val); }catch(e){}
+  }
+  function flowNode(current){
+    var labels=['Begin','Calibration','Guided baseline','Live readout'];
+    var node=document.createElement('div');
+    node.className='flow-strip';
+    for(var i=0;i<labels.length;i++){
+      var step=document.createElement('span');
+      step.className='flow-step'+(i<current?' done':'')+(i===current?' on':'');
+      step.textContent=labels[i];
+      node.appendChild(step);
+      if(i<labels.length-1){
+        var arr=document.createElement('span');
+        arr.className='flow-arr';
+        arr.setAttribute('aria-hidden','true');
+        arr.textContent='\u2192';
+        node.appendChild(arr);
+      }
+    }
+    return node;
+  }
+  function injectFlowBefore(container,anchorSelector,current){
+    if(!container || container.querySelector('.flow-strip'))return;
+    var anchor=container.querySelector(anchorSelector);
+    var node=flowNode(current);
+    if(anchor && anchor.parentNode===container) container.insertBefore(node,anchor);
+    else container.appendChild(node);
+  }
+  function updateBuildIdentity(){
+    try{ if(typeof APP_VERSION!=='undefined') APP_VERSION=SURFACE_BUILD.version; }catch(e){}
+    try{ if(typeof APP_BUILD!=='undefined') APP_BUILD=SURFACE_BUILD.build; }catch(e){}
+    try{ if(typeof APP_TITLE!=='undefined') APP_TITLE=SURFACE_BUILD.title; }catch(e){}
+    try{ document.title=SURFACE_BUILD.title; }catch(e){}
+    try{
+      if(window.CHORUS_BUILD_INFO){
+        window.CHORUS_BUILD_INFO.version=SURFACE_BUILD.version;
+        window.CHORUS_BUILD_INFO.build=SURFACE_BUILD.build;
+        window.CHORUS_BUILD_INFO.title=SURFACE_BUILD.title;
+      }
+    }catch(e){}
+  }
+  function buildFirstRunFlows(){
+    injectFlowBefore(document.querySelector('#start .sb'),'.sb-go',0);
+    injectFlowBefore(document.querySelector('#mic-ov .ov-box'),'.ov-btn',1);
+    injectFlowBefore(document.querySelector('#cal-ov .ov-box'),'#cal-bar',1);
+    injectFlowBefore(document.querySelector('#bl-ov .ov-box'),'#bl-bar',2);
+  }
+  function buildAdvancedSurface(){
+    var app=byId('app'), hdr=byId('hdr'), meta=byId('meta-bar'), protoBar=byId('protocol-bar'), protoScript=byId('protocol-script');
+    if(!app || !hdr || !meta || !protoBar || !protoScript || byId('surface-quickbar')) return;
+
+    var quick=document.createElement('div');
+    quick.id='surface-quickbar';
+    quick.innerHTML=
+      '<div id="surface-flow">'+
+        '<span id="surface-flow-badge">Default path</span>'+
+        '<span id="surface-flow-text">Begin \u2192 calibration \u2192 guided baseline \u2192 live readout</span>'+
+      '</div>'+
+      '<div id="surface-actions"></div>';
+
+    var actions=quick.querySelector('#surface-actions');
+    var taskSel=byId('task-type');
+    var taskField=taskSel ? taskSel.closest('.meta-field') : null;
+    if(taskField) actions.appendChild(taskField);
+
+    var advBtn=document.createElement('button');
+    advBtn.type='button';
+    advBtn.id='advanced-toggle';
+    advBtn.setAttribute('aria-controls','advanced-panel');
+    advBtn.setAttribute('aria-expanded','false');
+    advBtn.innerHTML=
+      '<span id="advanced-head">Advanced</span>'+
+      '<span id="advanced-summary">Protocol, bridge runs, block metadata</span>'+
+      '<span id="advanced-arrow">\u25BC</span>';
+    actions.appendChild(advBtn);
+
+    var shell=document.createElement('div');
+    shell.id='advanced-shell';
+    shell.setAttribute('data-open','0');
+    var panel=document.createElement('div');
+    panel.id='advanced-panel';
+    panel.hidden=true;
+
+    app.insertBefore(quick, meta);
+    app.insertBefore(shell, meta);
+    panel.appendChild(meta);
+    panel.appendChild(protoBar);
+    panel.appendChild(protoScript);
+    shell.appendChild(panel);
+
+    advBtn.addEventListener('click',function(){
+      setAdvancedOpen(!surfaceState.open,true);
+    });
+  }
+  function protocolSummary(){
+    try{
+      if(typeof protocolIsActive==='function' && protocolIsActive()){
+        var name=(typeof protocolState!=='undefined' && protocolState && protocolState.name)?protocolState.name:'Protocol';
+        var total=(typeof protocolState!=='undefined' && protocolState && protocolState.steps)?protocolState.steps.length:0;
+        var idx=(typeof protocolState!=='undefined' && protocolState)?protocolState.idx:-1;
+        if(total && idx>=total) return name+' \u00B7 complete';
+        if(total && idx>=0) return name+' \u00B7 step '+(idx+1)+' / '+total;
+        return name+' \u00B7 loaded';
+      }
+    }catch(e){}
+    var bits=[];
+    try{
+      if(window.UI && UI.markState && UI.markState.value) bits.push(UI.markState.value);
+      if(window.UI && UI.markScript && UI.markScript.value) bits.push(UI.markScript.value);
+      if(window.UI && UI.markTake && String(UI.markTake.value||'1')!=='1') bits.push('Take '+UI.markTake.value);
+      if(window.UI && UI.markNote && String(UI.markNote.value||'').trim()) bits.push('Noted');
+    }catch(e){}
+    return bits.length?bits.join(' \u00B7 '):'Protocol, bridge runs, block metadata';
+  }
+  function liveFlowText(){
+    try{
+      if(typeof demo!=='undefined' && demo) return 'Demo mode active \u2192 live readout without microphone calibration.';
+      if(typeof baselinePhase!=='undefined' && baselinePhase) return 'Guided baseline in progress \u2192 read with the highlighted pace until your center is anchored.';
+      if(typeof micOn!=='undefined' && micOn){
+        if(typeof baselineModelReady==='function' && baselineModelReady()) return 'Live readout active \u2192 baseline anchored and scoring is now relative to your within-session center.';
+        return 'Quiet-room calibration in progress \u2192 stay silent until the room baseline is learned.';
+      }
+    }catch(e){}
+    return 'Begin \u2192 calibration \u2192 guided baseline \u2192 live readout';
+  }
+  function updateSurfaceSummary(){
+    var flowText=liveFlowText();
+    var advSummary=protocolSummary();
+    if(flowText!==surfaceState.lastFlowText){
+      setText(byId('surface-flow-text'),flowText);
+      surfaceState.lastFlowText=flowText;
+    }
+    if(advSummary!==surfaceState.lastAdvSummary){
+      setText(byId('advanced-summary'),advSummary);
+      surfaceState.lastAdvSummary=advSummary;
+    }
+  }
+  function setAdvancedOpen(open,persist){
+    var shell=byId('advanced-shell'), panel=byId('advanced-panel'), btn=byId('advanced-toggle');
+    if(!shell || !panel || !btn) return;
+    surfaceState.open=!!open;
+    shell.setAttribute('data-open',open?'1':'0');
+    panel.hidden=!open;
+    btn.setAttribute('aria-expanded',open?'true':'false');
+    if(typeof persist==='undefined' || persist) safeLSSet(ADV_PREF_KEY,open?'1':'0');
+    updateSurfaceSummary();
+  }
+  function loadAdvancedPref(){
+    var saved=safeLSGet(ADV_PREF_KEY);
+    if(saved==='1' || saved==='0') return saved==='1';
+    try{
+      if(typeof protocolIsActive==='function' && protocolIsActive()) return true;
+    }catch(e){}
+    return false;
+  }
+  function afterPatch(name,fn){
+    var orig=window[name];
+    if(typeof orig!=='function') return;
+    window[name]=function(){
+      var out=orig.apply(this,arguments);
+      try{ fn.apply(this,arguments); }catch(e){}
+      return out;
+    };
+  }
+  function initSurface(){
+    if(surfaceState.initialized) return;
+    surfaceState.initialized=true;
+    updateBuildIdentity();
+    buildFirstRunFlows();
+    buildAdvancedSurface();
+    setAdvancedOpen(loadAdvancedPref(),false);
+    updateSurfaceSummary();
+
+    if(window.UI){
+      var syncEls=[UI.markState,UI.markScript,UI.markTake,UI.markNote,UI.taskType,UI.protoSelect];
+      for(var i=0;i<syncEls.length;i++){
+        if(syncEls[i] && syncEls[i].addEventListener){
+          syncEls[i].addEventListener('change',updateSurfaceSummary);
+          syncEls[i].addEventListener('input',updateSurfaceSummary);
+        }
+      }
+    }
+
+    afterPatch('refreshProtocolUI',updateSurfaceSummary);
+    afterPatch('setProtocolSelection',function(id){ if(id) setAdvancedOpen(true,false); else updateSurfaceSummary(); });
+    afterPatch('protocolLoadSelected',updateSurfaceSummary);
+    afterPatch('beginBaselinePhase',updateSurfaceSummary);
+    afterPatch('finishBaselinePhase',updateSurfaceSummary);
+    afterPatch('calibrate',updateSurfaceSummary);
+    afterPatch('goDemo',updateSurfaceSummary);
+    afterPatch('clearCalibration',updateSurfaceSummary);
+    afterPatch('applyRecoverySnapshot',function(){ updateSurfaceSummary(); });
+    window.setInterval(updateSurfaceSummary,900);
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initSurface);
+  else initSurface();
 })();
 </script>
 <script>
