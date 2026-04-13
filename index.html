@@ -8813,6 +8813,8 @@ body.v7-aether.coach-light .sense-hero-label{color:rgba(160,120,40,0.4)}
   transition:color 0.8s ease,opacity 0.5s ease;
 }
 body.v7-aether.coach-light .sense-hero-emotion{color:#1a1a2e}
+.sense-hero-arc{font:600 14px/1.2 'DM Sans',sans-serif;letter-spacing:0.04em;color:rgba(212,168,85,0.7);margin:2px 0 10px;text-align:center;transition:opacity 0.5s ease;min-height:18px}
+body.v7-aether.coach-light .sense-hero-arc{color:rgba(140,100,30,0.6)}
 /* Emotion-specific hero colors */
 .sense-hero-emotion[data-emotion="crying"]{color:#e87c7c}
 .sense-hero-emotion[data-emotion="sad"]{color:#7ca8e8}
@@ -8950,6 +8952,7 @@ body.v7-aether.coach-light #sense-dot-dominance{background:#7b61c2;box-shadow:0 
   font:500 10px/1 'JetBrains Mono',monospace;color:var(--tx3);
   width:38px;text-align:center;
 }
+.sense-dim-trend{font:600 12px/1 'DM Sans',sans-serif;color:var(--tx3);width:14px;text-align:center;flex-shrink:0}
 
 /* ── Impressions section ── */
 .sense-imp-section{
@@ -9194,6 +9197,14 @@ var S={
   // DOM refs
   ui:{}
 };
+
+// Arc-aware UI: label valence rank (higher = more positive/composed)
+var _HERO_VALENCE={'Light':5,'Alive':5,'In the Zone':5,
+  'Assuring':4,'Tender':4,'Grounded':4,'Rock Steady':4,
+  'Focused':3,'Centered':3,'Controlled':3,'Deliberate':3,'Resolute':3,'Assertive':3,
+  'Transitioning':2,'Searching':2,'Vulnerable':2,
+  'Running Hot':1,'On Guard':1,'Intense':1,'Frustrated':1,'Nervous':1,'Withdrawn':1,'Checked Out':1,'Subdued':1,'Burdened':1,
+  'Fragile':0,'Strained':0,'Struggling':0,'Exhausted':0,'Stressed':0,'Threatened':0,'Sad':0,'Moved':0,'Crying':0};
 
 // ═══════════════════════════════════════════════════════════════════
 // HELPERS
@@ -9452,6 +9463,13 @@ function computeSense(){
     S._prevNarrState=_curState;
     S._lastNarrD=S.dominance;
   }
+  // Arc UI: dominance trend ring buffer (samples every ~1s)
+  if(S._narrTick%30===0){
+    if(!S._domRing){S._domRing=new Array(30);S._domRingHead=0;S._domRingCount=0;}
+    S._domRing[S._domRingHead]=S.dominance;
+    S._domRingHead=(S._domRingHead+1)%30;
+    if(S._domRingCount<30)S._domRingCount++;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -9596,6 +9614,15 @@ function senseUpdateDims(){
   if(S.ui.rawA)S.ui.rawA.textContent=S.dArousal.toFixed(2);
   if(S.ui.rawV)S.ui.rawV.textContent=S.dValence.toFixed(2);
   if(S.ui.rawD)S.ui.rawD.textContent=S.dDominance.toFixed(2);
+  // Arc UI: dominance trend arrow
+  try{
+    if(S.ui.domTrend&&S._domRingCount>1){
+      var _di=(S._domRingHead-Math.min(S._domRingCount,30)+30)%30;
+      var _dd=S.dominance-S._domRing[_di];
+      var _da=_dd>0.05?'\u2191':_dd<-0.05?'\u2193':'';
+      if(S.ui.domTrend._last!==_da){S.ui.domTrend.textContent=_da;S.ui.domTrend._last=_da;}
+    }
+  }catch(e){}
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -10619,6 +10646,38 @@ function senseNarrative(){
     body='Your voice is between moments \u2014 the previous emotion has passed and the next hasn\u2019t arrived yet. This neutral space is brief but real. What comes next will tell you where your voice is heading.';
   }
 
+  // ── Arc-aware trajectory tracking (Fix 53) ──
+  if(!S._heroRing){S._heroRing=new Array(30);S._heroRingHead=0;S._heroRingCount=0;S._heroSeenSet={};S._heroSustainCount=0;S._heroPrevLabel='';}
+  S._heroRing[S._heroRingHead]=hero;
+  S._heroRingHead=(S._heroRingHead+1)%30;
+  if(S._heroRingCount<30)S._heroRingCount++;
+  if(hero===S._lastHero)S._heroSustainCount++;
+  else{S._heroPrevLabel=S._lastHero||'';S._heroSustainCount=1;}
+  var _prevIdx=(S._heroRingHead-Math.min(S._heroRingCount,30)+30)%30;
+  var _prevHero=S._heroRingCount>1?S._heroRing[_prevIdx]:'';
+  var _curRank=_HERO_VALENCE[hero]!=null?_HERO_VALENCE[hero]:2;
+  var _prevRank=_HERO_VALENCE[_prevHero]!=null?_HERO_VALENCE[_prevHero]:2;
+  S._arcDir=_curRank>_prevRank?1:_curRank<_prevRank?-1:0;
+  S._arcPrev=_prevHero||'';
+  try{
+    var _sc=S._heroSustainCount;
+    var _pl=S._heroPrevLabel||'';
+    var _pr=_HERO_VALENCE[_pl]!=null?_HERO_VALENCE[_pl]:2;
+    var _first=!S._heroSeenSet[hero];
+    if(hero!=='Listening'&&hero!=='Transitioning'){
+      if(_first&&_sc<=2){
+        body='Something new. This is the first time '+hero+' has appeared in this session. '+body;
+      }else if(_sc<=10&&_pl&&_pl!==hero){
+        body='This just shifted. You were '+_pl+' a moment ago. '+body;
+      }else if(_sc>=30){
+        body='This has been building for a while. '+body;
+      }else if(_pl&&_curRank>_pr&&_sc<=15){
+        body='You\u2019ve pulled back from '+_pl+'. Still '+hero+' but steadier. '+body;
+      }
+    }
+  }catch(e){}
+  if(!S._heroSeenSet[hero])S._heroSeenSet[hero]=true;
+
   // ML override: if ML is confident and heuristic produced a generic label, use ML instead
   try{
     var _mo=_mlOverride(hero,heroKey,body);
@@ -10648,6 +10707,16 @@ function senseRenderNarrative(){
     hEl.setAttribute('data-emotion',heroKey);
     hEl._lastHero=hero;
   }
+  // Arc UI: trajectory arrow
+  try{
+    var aEl=S.ui.heroArc;
+    if(aEl&&S._heroRingCount>1){
+      var arrow=S._arcDir>0?'\u25B2 rising from '+S._arcPrev
+               :S._arcDir<0?'\u25BC declining from '+S._arcPrev
+               :'\u2192 holding steady';
+      if(aEl._last!==arrow){aEl.textContent=arrow;aEl._last=arrow;}
+    }
+  }catch(e){}
   // Update narrative body
   if(S.ui.narrBody&&S.ui.narrBody._last!==body){
     S.ui.narrBody.textContent=body;S.ui.narrBody._last=body;
@@ -10700,6 +10769,7 @@ function senseBootUI(){
     '<div class="sense-hero">'+
       '<div class="sense-hero-label">Right now, you sound</div>'+
       '<div class="sense-hero-emotion" id="sense-hero-emotion" data-emotion="default">Warming Up</div>'+
+      '<div class="sense-hero-arc" id="sense-hero-arc"></div>'+
       '<div class="sense-hero-badges">'+
         '<span class="sense-badge" id="sense-badge-primal">\u2014</span>'+
         '<span class="sense-badge" id="sense-badge-imp"><span class="sense-badge-dot" id="sense-imp-dot"></span><span id="sense-imp-text">\u2014</span></span>'+
@@ -10761,12 +10831,18 @@ function senseBootUI(){
 
   // Cache all DOM refs
   S.ui.heroEmotion=document.getElementById('sense-hero-emotion');
+  S.ui.heroArc=document.getElementById('sense-hero-arc');
   S.ui.dotA=document.getElementById('sense-dot-arousal');
   S.ui.dotV=document.getElementById('sense-dot-valence');
   S.ui.dotD=document.getElementById('sense-dot-dominance');
   S.ui.rawA=document.getElementById('sense-raw-arousal');
   S.ui.rawV=document.getElementById('sense-raw-valence');
   S.ui.rawD=document.getElementById('sense-raw-dominance');
+  var domRaw=document.getElementById('sense-raw-dominance');
+  if(domRaw&&domRaw.parentNode){
+    var dta=document.createElement('span');dta.id='sense-dom-trend';dta.className='sense-dim-trend';
+    domRaw.parentNode.insertBefore(dta,domRaw.nextSibling);S.ui.domTrend=dta;
+  }
   S.ui.chipText=document.getElementById('sense-imp-text');
   S.ui.chipDot=document.getElementById('sense-imp-dot');
   S.ui.primalTag=document.getElementById('sense-badge-primal');
