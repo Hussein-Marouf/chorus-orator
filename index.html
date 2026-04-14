@@ -1271,7 +1271,7 @@ body.v7-aether.coach-light .sk-desc{color:#5a5a72 !important}
   <div class="sb-note">Mic required &middot; Audio analysis runs locally &middot; Vocal emotion analysis, not diagnostic &middot; Labels describe the voice, not the person</div>
 </div></div>
 <div id="pmd-panel"><div class="pmd-title">Psychomotor Depletion Monitor</div><div class="pmd-gauge-track"><div class="pmd-gauge-fill" id="pmd-fill"></div></div><div class="pmd-score pmd-ok" id="pmd-score">0%</div><div class="pmd-status" id="pmd-status">Waiting for data&hellip;</div><div class="pmd-metrics"><div class="pmd-metric"><div class="pmd-metric-label">Inertia</div><div class="pmd-metric-val" id="pmd-inertia">—</div></div><div class="pmd-metric"><div class="pmd-metric-label">Variability</div><div class="pmd-metric-val" id="pmd-variability">—</div></div><div class="pmd-metric"><div class="pmd-metric-label">Low Energy</div><div class="pmd-metric-val" id="pmd-lowenergy">—</div></div></div><div class="pmd-note">Acoustic correlate of psychomotor depletion.<br>Not a clinical diagnosis. All values relative to your baseline.</div></div>
-<div id="profile-ov"><div class="ov-box"><div class="ov-t">Voice Profile</div><div class="ov-sub">Load a saved baseline profile for longitudinal comparison, or start a new baseline calibration.</div><div class="profile-list" id="profile-list"><div class="profile-empty">No saved profiles yet.</div></div><button class="ov-btn ov-allow" onclick="profileNewBaseline()">New Baseline</button><button class="ov-btn ov-demo" onclick="startFileAnalysis()" style="border-color:rgba(74,159,181,0.5);color:#4a9fb5;font-weight:700">&#128193; Analyze Audio File</button><button class="ov-btn ov-demo" onclick="profileImportClick()" style="border-color:rgba(107,188,204,0.3);color:var(--teal)">Import from File</button><input type="file" id="profile-file-input" accept=".json" style="display:none" onchange="profileImportFromFile(this)"><button class="ov-btn ov-demo" onclick="goDemo()">Demo Mode</button></div></div>
+<div id="profile-ov"><div class="ov-box"><div class="ov-t">Voice Profile</div><div class="ov-sub">Load a saved baseline profile for longitudinal comparison, or start a new baseline calibration.</div><div class="profile-list" id="profile-list"><div class="profile-empty">No saved profiles yet.</div></div><button class="ov-btn ov-allow" onclick="profileNewBaseline()">New Baseline</button><button class="ov-btn ov-demo" onclick="startFileAnalysis()" style="border-color:rgba(74,159,181,0.5);color:#4a9fb5;font-weight:700">&#128193; Analyze Audio File</button><button class="ov-btn ov-demo" onclick="profileImportClick()" style="border-color:rgba(107,188,204,0.3);color:var(--teal)">Import from File</button><input type="file" id="profile-file-input" accept=".json" style="display:none" onchange="profileImportFromFile(this)"><button class="ov-btn ov-demo" onclick="startReview()" style="border-color:rgba(164,130,82,0.5);color:#a48252">&#9654; Review Session</button><button class="ov-btn ov-demo" onclick="goDemo()">Demo Mode</button></div></div>
 <div id="profile-save-ov"><div class="ov-box"><div class="ov-t">Save Baseline Profile</div><div class="ov-sub">Name this voice profile. It will be saved in your browser and downloaded as a JSON file to your chosen location.</div><input type="text" id="profile-save-input" placeholder="e.g. Hussein — Morning" maxlength="60"><button class="ov-btn ov-allow" onclick="profileSaveFromPrompt()">Save Profile</button><button class="ov-btn ov-demo" onclick="profileSkipSave()">Skip</button></div></div>
 <div id="mic-ov"><div class="ov-box"><div class="ov-t">Microphone</div><div class="ov-sub">Audio analysis runs locally in this page. No audio leaves your device unless you press Record. (Fonts load from Google Fonts on first visit.)<br><br>Live mode uses a robust quiet-room calibration and a guided voice baseline before scoring. Using the same short phrase each session improves comparability.</div><button class="ov-btn ov-allow" onclick="reqMic()">Allow Microphone</button><button class="ov-btn ov-demo" onclick="goDemo()">Demo Mode</button></div></div>
 <div id="cal-ov"><div class="ov-box"><div class="cal-t">Calibrating&hellip;</div><div class="cal-text">Stay quiet for a few seconds.<br>Learning your room's noise floor before voice baseline.</div><div id="cal-bar"><div id="cal-fill"></div></div><div id="cal-st">Listening&hellip;</div></div></div>
@@ -9206,6 +9206,165 @@ var _HERO_VALENCE={'Light':5,'Alive':5,'In the Zone':5,
   'Running Hot':1,'On Guard':1,'Intense':1,'Frustrated':1,'Nervous':1,'Withdrawn':1,'Checked Out':1,'Subdued':1,'Burdened':1,
   'Fragile':0,'Strained':0,'Struggling':0,'Exhausted':0,'Stressed':0,'Threatened':0,'Sad':0,'Moved':0,'Crying':0};
 
+// Arc-aware UI: label → CSS heroKey map for emotion colors
+var _HERO_KEY_MAP={'Crying':'crying','Sad':'sad','Moved':'moved','Threatened':'angry',
+  'Light':'light','Stressed':'stressed','Nervous':'nervous','Frustrated':'frustrated',
+  'Exhausted':'exhausted','Struggling':'stressed','Alive':'alive','Fragile':'nervous',
+  'Strained':'stressed','Intense':'angry','Withdrawn':'nervous','Vulnerable':'connecting',
+  'On Guard':'stressed','Deliberate':'commanding','Resolute':'steady','In the Zone':'zone',
+  'Running Hot':'frustrated','Controlled':'commanding','Grounded':'warm','Subdued':'exhausted',
+  'Burdened':'sad','Rock Steady':'steady','Assuring':'assuring','Tender':'tender',
+  'Assertive':'commanding','Focused':'magnetic','Searching':'nervous','Centered':'centered',
+  'Transitioning':'default','Checked Out':'default','Listening':'default'};
+
+// ── Session Replay (Fix 54) ──
+var _rvFrames=null,_rvAudio=null,_rvCursor=0,_rvActive=false;
+
+function startReview(){
+  // Show a simple overlay with two file inputs and a play button
+  var ov=document.getElementById('rv-ov');
+  if(ov){ov.style.display='flex';return;}
+  ov=document.createElement('div');ov.id='rv-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999';
+  ov.innerHTML='<div style="background:#1a1a2e;border-radius:12px;padding:32px;max-width:400px;width:90%;text-align:center;font-family:DM Sans,sans-serif;color:#f0e6d2">'+
+    '<div style="font-size:18px;font-weight:700;margin-bottom:16px">Review Session</div>'+
+    '<div style="font-size:13px;color:rgba(200,195,185,0.6);margin-bottom:20px">Select the session JSON and its audio recording</div>'+
+    '<label style="display:block;margin-bottom:12px;text-align:left;font-size:12px;color:rgba(212,168,85,0.7)">Session JSON'+
+      '<input type="file" id="rv-json" accept=".json" style="display:block;margin-top:4px;font-size:13px;color:#f0e6d2">'+
+    '</label>'+
+    '<label style="display:block;margin-bottom:20px;text-align:left;font-size:12px;color:rgba(212,168,85,0.7)">Audio Recording'+
+      '<input type="file" id="rv-audio" accept=".webm,.wav,.mp3,.m4a,.ogg" style="display:block;margin-top:4px;font-size:13px;color:#f0e6d2">'+
+    '</label>'+
+    '<div id="rv-status" style="font-size:12px;color:rgba(200,195,185,0.5);margin-bottom:12px;min-height:16px"></div>'+
+    '<button id="rv-play" style="background:rgba(212,168,85,0.2);border:1px solid rgba(212,168,85,0.5);color:#d4a855;padding:10px 28px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer" disabled>&#9654; Play</button>'+
+    '<button style="background:none;border:1px solid rgba(200,195,185,0.2);color:rgba(200,195,185,0.5);padding:10px 20px;border-radius:6px;font-size:13px;cursor:pointer;margin-left:8px" onclick="document.getElementById(\'rv-ov\').style.display=\'none\'">Cancel</button>'+
+  '</div>';
+  document.body.appendChild(ov);
+
+  var jsonInput=document.getElementById('rv-json');
+  var audioInput=document.getElementById('rv-audio');
+  var playBtn=document.getElementById('rv-play');
+  var status=document.getElementById('rv-status');
+
+  jsonInput.onchange=function(){
+    status.textContent='Loading JSON...';
+    var reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        var d=JSON.parse(e.target.result);
+        _rvFrames=d.frames||d;
+        status.textContent=_rvFrames.length+' frames loaded.';
+        if(_rvAudio)playBtn.disabled=false;
+      }catch(ex){status.textContent='Error: invalid JSON';_rvFrames=null;}
+    };
+    reader.readAsText(jsonInput.files[0]);
+  };
+
+  audioInput.onchange=function(){
+    if(_rvAudio){URL.revokeObjectURL(_rvAudio.src);}
+    _rvAudio=new Audio(URL.createObjectURL(audioInput.files[0]));
+    _rvAudio.preload='auto';
+    status.textContent=(_rvFrames?_rvFrames.length+' frames loaded. ':'')+'Audio ready.';
+    if(_rvFrames)playBtn.disabled=false;
+  };
+
+  playBtn.onclick=function(){
+    if(!_rvFrames||!_rvAudio)return;
+    ov.style.display='none';
+    _rvBegin();
+  };
+}
+
+function _rvBegin(){
+  _rvCursor=0;_rvActive=true;
+  // Always use standalone replay UI — don't depend on main app boot chain
+  {
+    var rvUI=document.createElement('div');rvUI.id='rv-ui';
+    rvUI.style.cssText='position:fixed;inset:0;background:#0f0f1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9998;font-family:DM Sans,sans-serif;color:#f0e6d2';
+    rvUI.innerHTML='<div style="font:600 10px/1 JetBrains Mono,monospace;letter-spacing:0.2em;text-transform:uppercase;color:rgba(212,168,85,0.5);margin-bottom:14px">Right now, you sound</div>'+
+      '<div id="rv-hero" style="font:800 36px/1.1 DM Sans,sans-serif;margin-bottom:8px;transition:color 0.8s">—</div>'+
+      '<div id="rv-arc" style="font:600 14px/1.2 DM Sans,sans-serif;color:rgba(212,168,85,0.7);margin-bottom:24px;min-height:18px"></div>'+
+      '<div style="display:flex;gap:16px;margin-bottom:24px">'+
+        '<div id="rv-pri" style="font:500 12px/1 DM Sans,sans-serif;background:rgba(255,255,255,0.06);padding:6px 14px;border-radius:12px">—</div>'+
+        '<div id="rv-imp" style="font:500 12px/1 DM Sans,sans-serif;background:rgba(255,255,255,0.06);padding:6px 14px;border-radius:12px">—</div>'+
+      '</div>'+
+      '<div style="width:280px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(200,195,185,0.4)"><span>Calm</span><span>Activated</span></div><div style="height:4px;background:rgba(255,255,255,0.08);border-radius:2px;position:relative;margin:4px 0"><div id="rv-dot-a" style="width:12px;height:12px;border-radius:50%;background:#e8a83c;position:absolute;top:-4px;left:50%;transition:left 0.5s"></div></div></div>'+
+      '<div style="width:280px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(200,195,185,0.4)"><span>Heavy</span><span>Bright</span></div><div style="height:4px;background:rgba(255,255,255,0.08);border-radius:2px;position:relative;margin:4px 0"><div id="rv-dot-v" style="width:12px;height:12px;border-radius:50%;background:#6bcc8f;position:absolute;top:-4px;left:50%;transition:left 0.5s"></div></div></div>'+
+      '<div style="width:280px;margin-bottom:20px"><div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(200,195,185,0.4)"><span>Yielding</span><span>Assertive</span></div><div style="height:4px;background:rgba(255,255,255,0.08);border-radius:2px;position:relative;margin:4px 0"><div id="rv-dot-d" style="width:12px;height:12px;border-radius:50%;background:#9b7fd4;position:absolute;top:-4px;left:50%;transition:left 0.5s"></div></div></div>'+
+      '<div id="rv-time" style="font:500 11px/1 JetBrains Mono,monospace;color:rgba(200,195,185,0.3)">0:00</div>';
+    document.body.appendChild(rvUI);
+    S.ui._rvStandalone=true;
+  }
+  _rvAudio.play();
+  requestAnimationFrame(_rvTick);
+}
+
+var _rvPrevHero='',_rvHeroRank=2;
+var _PRIMAL_NAMES=['Distress','Threat','Submission','Affiliation','Joy','Alert'];
+var _IMP_NAMES=['Confidence','Warmth','Authority','Engagement','Uncertainty'];
+
+function _rvTick(ts){
+  if(!_rvActive||!_rvAudio)return;
+  if(_rvAudio.ended){_rvActive=false;return;}
+  var ct=_rvAudio.currentTime+0.8; // compensate ~1s EMA+debounce lag so labels land on the voice that triggered them
+  while(_rvCursor<_rvFrames.length-1&&_rvFrames[_rvCursor+1].t<=ct)_rvCursor++;
+  var fr=_rvFrames[_rvCursor];
+  if(!fr){requestAnimationFrame(_rvTick);return;}
+
+  var label=fr.sE||'';
+  var key=_HERO_KEY_MAP[label]||'default';
+
+  if(S.ui._rvStandalone){
+    // Standalone replay UI
+    var hero=document.getElementById('rv-hero');
+    if(hero&&hero._last!==label){
+      hero.textContent=label||'\u2014';hero._last=label;
+      // Color from CSS emotion map — use a simple lookup
+      var colors={'crying':'#e87c7c','sad':'#7ca8e8','moved':'#a088cc','angry':'#e8604a',
+        'light':'#e8c84a','stressed':'#e8a84a','nervous':'#b0a070','frustrated':'#d48a5a',
+        'exhausted':'#8090a0','alive':'#c8e060','connecting':'#80c8b0','commanding':'#a0b8d0',
+        'steady':'#b0b8c0','zone':'#60d0a0','warm':'#e0b878','assuring':'#d4a855',
+        'tender':'#d4b898','magnetic':'#b0c0d0','centered':'#a0a8b0','default':'#f0e6d2'};
+      hero.style.color=colors[key]||'#f0e6d2';
+      // Arc arrow
+      var newRank=_HERO_VALENCE[label]!=null?_HERO_VALENCE[label]:2;
+      var arc=document.getElementById('rv-arc');
+      if(arc&&_rvPrevHero){
+        var arrow=newRank>_rvHeroRank?'\u2197 voice is lifting'
+                 :newRank<_rvHeroRank?'\u2198 voice getting heavier'
+                 :'\u2192 steady';
+        arc.textContent=arrow;
+      }
+      _rvPrevHero=label;_rvHeroRank=newRank;
+    }
+    // Badges
+    var priEl=document.getElementById('rv-pri');
+    if(priEl)priEl.textContent=fr.sPri||'\u2014';
+    var impEl=document.getElementById('rv-imp');
+    if(impEl){var iTop=0;if(fr.imp)for(var i=1;i<5;i++)if(fr.imp[i]>fr.imp[iTop])iTop=i;impEl.textContent=_IMP_NAMES[iTop]||'\u2014';}
+    // Dimension dots
+    var da=document.getElementById('rv-dot-a');if(da)da.style.left=((fr.sA||0)+1)*50+'%';
+    var dv=document.getElementById('rv-dot-v');if(dv)dv.style.left=((fr.sV||0)+1)*50+'%';
+    var dd=document.getElementById('rv-dot-d');if(dd)dd.style.left=((fr.sD||0)+1)*50+'%';
+    // Time
+    var tEl=document.getElementById('rv-time');
+    if(tEl){var m=Math.floor(ct/60),s=Math.floor(ct%60);tEl.textContent=m+':'+(s<10?'0':'')+s;}
+  } else {
+    // Use existing SENSE UI
+    S.arousal=S.dArousal=fr.sA||0;
+    S.valence=S.dValence=fr.sV||0;
+    S.dominance=S.dDominance=fr.sD||0;
+    S._lastHero=label;S._lastHeroKey=key;S._lastNarrBody='';
+    S.primalTop=fr.sPri?_PRIMAL_NAMES.indexOf(fr.sPri):-1;
+    if(fr.pri)for(var i=0;i<6;i++)S.primal[i]=fr.pri[i]||0;
+    if(fr.imp)for(var i=0;i<5;i++)S.imp[i]=fr.imp[i]||0;
+    S.impTop=0;for(var i=1;i<5;i++)if(S.imp[i]>S.imp[S.impTop])S.impTop=i;
+    S.ars=S.dArs=fr.ars||0;
+    try{senseRender(ts);}catch(e){}
+  }
+  requestAnimationFrame(_rvTick);
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════
@@ -10666,13 +10825,13 @@ function senseNarrative(){
     var _first=!S._heroSeenSet[hero];
     if(hero!=='Listening'&&hero!=='Transitioning'){
       if(_first&&_sc<=2){
-        body='Something new. This is the first time '+hero+' has appeared in this session. '+body;
+        body='New \u2014 this quality just appeared for the first time. '+body;
       }else if(_sc<=10&&_pl&&_pl!==hero){
-        body='This just shifted. You were '+_pl+' a moment ago. '+body;
+        body='Just shifted \u2014 your voice changed. '+body;
       }else if(_sc>=30){
         body='This has been building for a while. '+body;
       }else if(_pl&&_curRank>_pr&&_sc<=15){
-        body='You\u2019ve pulled back from '+_pl+'. Still '+hero+' but steadier. '+body;
+        body='Recovering \u2014 your voice is settling. '+body;
       }
     }
   }catch(e){}
@@ -10711,9 +10870,9 @@ function senseRenderNarrative(){
   try{
     var aEl=S.ui.heroArc;
     if(aEl&&S._heroRingCount>1){
-      var arrow=S._arcDir>0?'\u25B2 rising from '+S._arcPrev
-               :S._arcDir<0?'\u25BC declining from '+S._arcPrev
-               :'\u2192 holding steady';
+      var arrow=S._arcDir>0?'\u2197 voice is lifting'
+               :S._arcDir<0?'\u2198 voice getting heavier'
+               :'\u2192 steady';
       if(aEl._last!==arrow){aEl.textContent=arrow;aEl._last=arrow;}
     }
   }catch(e){}
@@ -11267,6 +11426,7 @@ else window.addEventListener('load',function(){setTimeout(_onnxLoadModel,100);})
 window.__SENSE=S;
 window.__SENSE_PRIMAL_NAMES=PRIMAL_NAMES;
 window.__SENSE_IMP_NAMES=IMP_NAMES;
+window.startReview=startReview;
 
 })();
 </script>
