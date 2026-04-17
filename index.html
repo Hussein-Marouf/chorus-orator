@@ -48,6 +48,27 @@ html,body{width:100%;height:100%;background:radial-gradient(circle at 18% 12%,rg
 #cal-bar,#bl-bar{width:200px;height:6px;border-radius:3px;background:rgba(255,255,255,0.06);margin:0 auto 10px;overflow:hidden}
 #cal-fill,#bl-fill{height:100%;width:0;background:var(--green);border-radius:3px;transition:width .12s}
 #cal-st,#bl-st{font-size:11px;color:var(--tx3)}
+/* v56 Item 3: LED/dB input-level meter — dual placement (baseline overlay + V7 panel). Cosmetic only, reads raw[0]. */
+.lvl-meter{position:relative;width:200px;height:10px;border-radius:5px;background:rgba(255,255,255,0.06);margin:12px auto 4px;overflow:visible}
+.lvl-meter .lvl-track{position:absolute;inset:0;border-radius:5px;background:rgba(255,255,255,0.06);overflow:hidden}
+.lvl-fill{position:absolute;left:0;top:0;height:100%;width:0%;border-radius:5px;background:linear-gradient(90deg,#6bcc8f 0%,#6bcc8f 50%,#e8a83c 72%,#cc5555 86%,#ff4040 100%);transition:width .14s cubic-bezier(.25,.8,.25,1);will-change:width}
+.lvl-peak{position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,0.85);left:0%;transition:left .22s cubic-bezier(.25,.8,.25,1);box-shadow:0 0 4px rgba(255,255,255,0.5);pointer-events:none;will-change:left}
+.lvl-clip{position:absolute;inset:-2px;border-radius:7px;border:2px solid #ff4040;opacity:0;pointer-events:none;transition:opacity .08s}
+.lvl-clip.hot{opacity:1;box-shadow:0 0 12px rgba(255,64,64,0.6);animation:lvlClipFlash .35s ease-out infinite}
+@keyframes lvlClipFlash{0%,100%{opacity:0.65}50%{opacity:1}}
+.lvl-lbl{font-size:10px;color:var(--tx3);text-align:center;margin-top:6px;letter-spacing:.08em;text-transform:uppercase;font-family:'JetBrains Mono','DM Sans',monospace}
+.lvl-lbl .lvl-val{color:var(--tx2);font-weight:600;margin-left:4px}
+.lvl-lbl.hot .lvl-val{color:#ff4040}
+.lvl-meter.v7-lvl{width:100%;max-width:100%;margin:4px 0}
+/* v56 Item 3 follow-up: compact header meter (always visible during recording, no V7 panel dependency) */
+.lvl-meter.hdr-lvl{width:92px;height:6px;margin:0 6px 0 8px;border-radius:3px;flex-shrink:0}
+.lvl-meter.hdr-lvl .lvl-fill{border-radius:3px}
+.lvl-meter.hdr-lvl .lvl-peak{top:-1px;bottom:-1px;width:1.5px}
+.lvl-meter.hdr-lvl .lvl-clip{border-radius:4px;border-width:1.5px}
+#hdr-lvl-wrap{display:flex;align-items:center;gap:4px}
+#hdr-lvl-lab{font-size:8px;color:var(--tx3);letter-spacing:.12em;text-transform:uppercase;font-family:'Space Grotesk','DM Sans',system-ui,sans-serif}
+#hdr-lvl-val{font-size:9px;color:var(--tx3);font-family:'JetBrains Mono',monospace;min-width:28px;text-align:right}
+#hdr-lvl-val.hot{color:#ff4040;font-weight:700}
 #app{position:fixed;inset:0;z-index:10;display:none;flex-direction:column}
 #app.on{display:flex}
 #hdr{display:flex;align-items:center;justify-content:space-between;padding:0 12px;height:38px;flex-shrink:0;background:rgba(8,9,15,0.72);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,0.05);box-shadow:0 6px 24px rgba(0,0,0,0.18)}
@@ -1275,7 +1296,9 @@ body.v7-aether.coach-light .sk-desc{color:#5a5a72 !important}
 <div id="profile-save-ov"><div class="ov-box"><div class="ov-t">Save Baseline Profile</div><div class="ov-sub">Name this voice profile. It will be saved in your browser and downloaded as a JSON file to your chosen location.</div><input type="text" id="profile-save-input" placeholder="e.g. Hussein — Morning" maxlength="60"><button class="ov-btn ov-allow" onclick="profileSaveFromPrompt()">Save Profile</button><button class="ov-btn ov-demo" onclick="profileSkipSave()">Skip</button></div></div>
 <div id="mic-ov"><div class="ov-box"><div class="ov-t">Microphone</div><div class="ov-sub">Audio analysis runs locally in this page. No audio leaves your device unless you press Record. (Fonts load from Google Fonts on first visit.)<br><br>Live mode uses a robust quiet-room calibration and a guided voice baseline before scoring. Using the same short phrase each session improves comparability.</div><button class="ov-btn ov-allow" onclick="reqMic()">Allow Microphone</button><button class="ov-btn ov-demo" onclick="goDemo()">Demo Mode</button></div></div>
 <div id="cal-ov"><div class="ov-box"><div class="cal-t">Calibrating&hellip;</div><div class="cal-text">Stay quiet for a few seconds.<br>Learning your room's noise floor before voice baseline.</div><div id="cal-bar"><div id="cal-fill"></div></div><div id="cal-st">Listening&hellip;</div></div></div>
-<div id="bl-ov"><div class="ov-box"><div class="cal-t">Voice Baseline</div><div class="cal-text">Read the passage below at the highlighted pace.<br>This anchors your vocal baseline before scoring begins.</div><div id="bl-bar"><div id="bl-fill"></div></div><div id="bl-st">Listening for your voice&hellip;</div><div id="bl-karaoke"><div id="bl-karaoke-label">Read along at the highlighted pace<span id="bl-karaoke-pace"></span></div><div id="bl-karaoke-text"></div><div id="bl-karaoke-hint">This passage calibrates your full vocal range</div></div><div id="bl-skip" style="display:none;margin-top:14px"><button class="ov-btn ov-demo" onclick="skipBaseline()" style="padding:8px 20px;font-size:12px">Skip &mdash; results may settle more slowly</button></div></div></div>
+<div id="bl-ov"><div class="ov-box"><div class="cal-t">Voice Baseline</div><div class="cal-text">Read the passage below at the highlighted pace.<br>This anchors your vocal baseline before scoring begins.</div><div id="bl-bar"><div id="bl-fill"></div></div><div id="bl-st">Listening for your voice&hellip;</div><!-- v56 Item 3: input-level meter (baseline phase) -->
+<div class="lvl-meter" id="bl-lvl-meter"><div class="lvl-fill" id="bl-lvl-fill"></div><div class="lvl-peak" id="bl-lvl-peak"></div><div class="lvl-clip" id="bl-lvl-clip"></div></div>
+<div class="lvl-lbl" id="bl-lvl-lbl">Input level<span class="lvl-val" id="bl-lvl-val">0%</span></div><div id="bl-karaoke"><div id="bl-karaoke-label">Read along at the highlighted pace<span id="bl-karaoke-pace"></span></div><div id="bl-karaoke-text"></div><div id="bl-karaoke-hint">This passage calibrates your full vocal range</div></div><div id="bl-skip" style="display:none;margin-top:14px"><button class="ov-btn ov-demo" onclick="skipBaseline()" style="padding:8px 20px;font-size:12px">Skip &mdash; results may settle more slowly</button></div></div></div>
 <div id="state-key"><div id="state-key-box">
   <h3>Vocal Profile States</h3>
   <div class="sk-row"><div class="sk-dot" style="background:#6bcc8f"></div><div class="sk-name" style="color:#6bcc8f">CLEAR</div><div class="sk-desc">Regular pitch trajectory, consistent amplitude, moderate pace — your steadiest, most controlled delivery relative to baseline. (F0Stab/AmpStab are 30 Hz frame-level consistency proxies, not cycle-accurate perturbation measures.)</div></div>
@@ -1293,6 +1316,12 @@ body.v7-aether.coach-light .sk-desc{color:#5a5a72 !important}
       <span class="h-brand">Blind Man AEther</span>
       <div id="mic-b" class="off" onclick="togMic()"><span class="md"></span><span id="ml">Off</span></div>
       <span id="tmr">00:00</span>
+      <!-- v56 Item 3 follow-up: always-visible input-level meter in header (fixes main-UI visibility bug) -->
+      <div id="hdr-lvl-wrap" title="Input level — stay out of the red zone">
+        <span id="hdr-lvl-lab">In</span>
+        <div class="lvl-meter hdr-lvl" id="hdr-lvl-meter"><div class="lvl-fill" id="hdr-lvl-fill"></div><div class="lvl-peak" id="hdr-lvl-peak"></div><div class="lvl-clip" id="hdr-lvl-clip"></div></div>
+        <span id="hdr-lvl-val">0%</span>
+      </div>
     </div>
     <div class="hr">
       <div class="gw"><span class="gl">Gain</span><input type="range" id="gs" min="0" max="100" value="78"><span id="gvl">+8</span></div>
@@ -1494,7 +1523,7 @@ var _featVoicedCount=0, _featPitchCount=0, _featHnrCount=0;
 var lastSnrConf=0; // framewise SNR confidence used in scoring/logging
 var DEFAULT_TASK_TYPE='free_speech'; // fixed_phrase enables phoneme-sensitive F2 restraint scoring
 var sessionMeta={taskType:DEFAULT_TASK_TYPE,protocolId:'',protocolName:''};
-var fixedBase={locked:false,pitchMu:0,pitchSd:0,loudMu:0,rateMu:0};
+var fixedBase={locked:false,pitchMu:0,pitchSd:0,loudMu:0,rateMu:0,hnrMu:0,lockTimeMs:0,lockFrameCount:0}; // v56 Item 1: additive baseline fingerprint fields
 var covMuBase=null; // A22: snapshot of covMu at baseline lock — anchors whitening center to neutral reference
 var raw=new Float32Array(NC), sm=new Float32Array(NC), zN=new Float32Array(NC);
 var rMu=new Float32Array(NC), rVar=new Float32Array(NC);
@@ -1518,6 +1547,7 @@ var lastExtractTime=0;
 var _tickDtSec=1/30; // actual tick interval in seconds — updated by extract(), used by normalize()
 var inP=false, pT=0;
 var blPitch=[], blLoud=[], blRate=[], BL=900; // CP1: blBright[] removed — rMu[4] EWMA is equivalent and zero-overhead
+var blHnr=[]; // v56 Item 1: HNR accumulator for baseline fingerprint (additive metadata, no gate impact)
 var pitchBuf=[], JBUF=15, rmsBuf=[];
 // ENH #8: 3-frame running median buffers for raw[5] (F0 stability) and raw[7] (amp stability).
 // A brief voiced gap (consonant cluster, quick breath) spikes jitter/shimmer for a single frame,
@@ -2841,6 +2871,10 @@ function lockBaselineReference(force){
   fixedBase.pitchSd=Math.max(1e-6,arrStd(blPitch));
   fixedBase.loudMu=arrMean(blLoud);
   fixedBase.rateMu=arrMean(blRate);
+  // v56 Item 1: baseline fingerprint — HNR mean, lock timestamp, frame count. Additive metadata only.
+  fixedBase.hnrMu=blHnr.length>0?arrMean(blHnr):0;
+  fixedBase.lockTimeMs=(typeof Date!=='undefined'&&Date.now)?Date.now():0;
+  fixedBase.lockFrameCount=blPitch.length;
   fixedBase.locked=true;
   // A22: snapshot covMu at baseline lock so whitening center stays anchored to neutral reference
   if(!covMuBase){covMuBase=new Float64Array(NC);for(var _cb=0;_cb<NC;_cb++)covMuBase[_cb]=covMu[_cb];}
@@ -3095,7 +3129,7 @@ function applyRecoverySnapshot(snapshot){
   roomDriftDb=safeNum(bundle.roomDriftDb||snapshot.roomDriftDb||0);
   roomDriftWarned=!!(bundle.roomDriftWarned||roomDriftDb>6);
   roomDriftFrames=roomDriftWarned?90:0;
-  fixedBase={locked:!!(bundle.fixedBase&&bundle.fixedBase.locked),pitchMu:safeNum(bundle.fixedBase&&bundle.fixedBase.pitchMu),pitchSd:safeNum(bundle.fixedBase&&bundle.fixedBase.pitchSd),loudMu:safeNum(bundle.fixedBase&&bundle.fixedBase.loudMu),rateMu:safeNum(bundle.fixedBase&&bundle.fixedBase.rateMu)};
+  fixedBase={locked:!!(bundle.fixedBase&&bundle.fixedBase.locked),pitchMu:safeNum(bundle.fixedBase&&bundle.fixedBase.pitchMu),pitchSd:safeNum(bundle.fixedBase&&bundle.fixedBase.pitchSd),loudMu:safeNum(bundle.fixedBase&&bundle.fixedBase.loudMu),rateMu:safeNum(bundle.fixedBase&&bundle.fixedBase.rateMu),hnrMu:safeNum(bundle.fixedBase&&bundle.fixedBase.hnrMu),lockTimeMs:safeNum(bundle.fixedBase&&bundle.fixedBase.lockTimeMs),lockFrameCount:safeNum(bundle.fixedBase&&bundle.fixedBase.lockFrameCount)}; // v56 Item 1
   covReady=!!bundle.covReady;covStage=safeNum(bundle.covStage)|0;covCount=safeNum(bundle.covCount)|0;
   covMu=new Float64Array((bundle.covMu&&bundle.covMu.length===NC)?bundle.covMu:new Array(NC).fill(0));
   covMuBase=(bundle.covMuBase&&bundle.covMuBase.length===NC)?new Float64Array(bundle.covMuBase):null;
@@ -3343,8 +3377,60 @@ function finishBaselinePhase(){
   if(calQuality<CAL_WARN_MIN)showToast('Calibration quality is low ('+Math.round(calQuality*100)+'). Results may drift toward effort/load-like states; quieter and steadier setup is recommended.',true,6200);
 }
 function skipBaseline(){finishBaselinePhase();}
+// v56 Item 3: input-level meter update — writes to BOTH baseline-overlay and V7-panel mounts.
+// raw[0] is a per-frame RMS that swings between syllables. We apply VU-meter ballistics:
+// fast attack (k=0.55) so peaks respond immediately, slow release (k=0.12) so the bar doesn't
+// flicker between consonants and vowel bodies. Peak-hold uses a much slower decay so the
+// thin white "recent peak" line settles visibly above the moving bar.
+// CSS transition on .lvl-fill provides sub-frame interpolation; throttle matches the 30 Hz
+// source so every DSP frame delivers a new smoothed value with no drop-outs.
+// Refs cached on first successful lookup; missing mounts are harmless no-ops.
+var _lvlPeak=0, _lvlPeakDecay=0.992, _lvlLastUpd=0, _lvlSmooth=0;
+var _lvlAttack=0.55, _lvlRelease=0.12; // VU ballistics: rises fast, falls slowly
+var _lvlRefs=null, _lvlRefsTried=0;
+function _lvlGetRefs(){
+  // Re-try lookup periodically because V7 panel is injected post-baseline-lock — refs may not exist on early calls.
+  if(_lvlRefs&&_lvlRefs.blF&&_lvlRefs.v7F)return _lvlRefs;
+  var now=(typeof performance!=='undefined'&&performance.now)?performance.now():Date.now();
+  if(_lvlRefs&&(now-_lvlRefsTried)<500)return _lvlRefs; // don't spam getElementById
+  _lvlRefsTried=now;
+  _lvlRefs={
+    blF:document.getElementById('bl-lvl-fill'),   v7F:document.getElementById('v7-lvl-fill'),   hdF:document.getElementById('hdr-lvl-fill'),
+    blP:document.getElementById('bl-lvl-peak'),   v7P:document.getElementById('v7-lvl-peak'),   hdP:document.getElementById('hdr-lvl-peak'),
+    blC:document.getElementById('bl-lvl-clip'),   v7C:document.getElementById('v7-lvl-clip'),   hdC:document.getElementById('hdr-lvl-clip'),
+    blV:document.getElementById('bl-lvl-val'),    v7V:document.getElementById('v7-lvl-val'),    hdV:document.getElementById('hdr-lvl-val'),
+    blL:document.getElementById('bl-lvl-lbl')
+  };
+  return _lvlRefs;
+}
+function updateInputLvlMeter(raw_lv){
+  if(typeof raw_lv!=='number'||!isFinite(raw_lv))return;
+  var now=(typeof performance!=='undefined'&&performance.now)?performance.now():Date.now();
+  if(now-_lvlLastUpd<30)return; // ~33 Hz throttle, matches DSP source rate
+  _lvlLastUpd=now;
+  if(raw_lv<0)raw_lv=0; else if(raw_lv>1)raw_lv=1;
+  // VU-style ballistics: fast attack on rising signal, slow release on falling signal.
+  var k=(raw_lv>_lvlSmooth)?_lvlAttack:_lvlRelease;
+  _lvlSmooth+=k*(raw_lv-_lvlSmooth);
+  if(_lvlSmooth<0)_lvlSmooth=0; else if(_lvlSmooth>1)_lvlSmooth=1;
+  // Peak-hold tracks SMOOTHED signal so it doesn't jump on single-frame spikes.
+  if(_lvlSmooth>_lvlPeak)_lvlPeak=_lvlSmooth; else _lvlPeak=Math.max(_lvlSmooth,_lvlPeak*_lvlPeakDecay);
+  var pct=Math.round(_lvlSmooth*100), peakPct=Math.round(_lvlPeak*100), hot=(_lvlSmooth>0.85);
+  var r=_lvlGetRefs();
+  if(r.blF)r.blF.style.width=pct+'%'; if(r.v7F)r.v7F.style.width=pct+'%'; if(r.hdF)r.hdF.style.width=pct+'%';
+  if(r.blP)r.blP.style.left=peakPct+'%'; if(r.v7P)r.v7P.style.left=peakPct+'%'; if(r.hdP)r.hdP.style.left=peakPct+'%';
+  if(r.blC){if(hot)r.blC.classList.add('hot'); else r.blC.classList.remove('hot');}
+  if(r.v7C){if(hot)r.v7C.classList.add('hot'); else r.v7C.classList.remove('hot');}
+  if(r.hdC){if(hot)r.hdC.classList.add('hot'); else r.hdC.classList.remove('hot');}
+  var pctStr=pct+'%';
+  if(r.blV)r.blV.textContent=pctStr; if(r.v7V)r.v7V.textContent=pctStr;
+  if(r.hdV){r.hdV.textContent=pctStr; if(hot)r.hdV.classList.add('hot'); else r.hdV.classList.remove('hot');}
+  if(r.blL){if(hot)r.blL.classList.add('hot'); else r.blL.classList.remove('hot');}
+}
 function updateBaselineOverlay(now){
   if(!baselinePhase)return;
+  // v56 Item 3: drive input-level meter during baseline capture (clipping here poisons the reference)
+  if(typeof raw!=='undefined'&&raw&&typeof raw[0]==='number')updateInputLvlMeter(raw[0]);
   var blElapsed=now-baselineStartT;
   var warmPct=Math.min(100,(sWarm/BL_WARM_TARGET)*100);
   var timePct=Math.min(100,(blElapsed/BL_MIN_TIME_MS)*100);
@@ -4176,10 +4262,10 @@ function resetFeatureState(){
   resetQualityState();
 }
 function resetBaselineState(){
-  blPitch=[];blLoud=[];blRate=[];blF2=[];sWarm=0;
+  blPitch=[];blLoud=[];blRate=[];blF2=[];blHnr=[];sWarm=0; // v56 Item 1: reset blHnr
   _blCache={pVer:0,pMu:0,pSd:0,lVer:0,lMu:0,rVer:0,rMu:0,pvVer:0,pvMu:0,pvSd:0,f2Ver:0,f2Mu:0};_blWriteVer={p:0,l:0,r:0,pv:0,f2:0};
   _stabF0Buf.length=0;_stabAmpBuf.length=0; // AUDIT FIX: defensive — prevent stale stability data if resetBaselineState() is called without resetFeatureState()
-  fixedBase={locked:false,pitchMu:0,pitchSd:0,loudMu:0,rateMu:0};
+  fixedBase={locked:false,pitchMu:0,pitchSd:0,loudMu:0,rateMu:0,hnrMu:0,lockTimeMs:0,lockFrameCount:0}; // v56 Item 1
   var nN=Math.max(0,(nFloorDb+72)/72)*0.3;
   for(var j=0;j<NC;j++){rMu[j]=nN;rVar[j]=0.04;}
   covMu=new Float64Array(NC);
@@ -4199,6 +4285,8 @@ function resetBaselineState(){
 function resetSessionMetrics(){
   peakFocus=peakLoad=peakStress=peakFatigue=peakGuarded=peakTension=0;
   stateLog=[];eventMarks=[];activeBlockMark=null;blockMarkSeq=1;pitchOutlierSuppressed=0;exportBundleCache=null;updateMarkButton();
+  // v56 Item 3 audit-fix (HIGH D1 + MEDIUM D2 + smoothness pass): reset peak-hold, smoothed value, and invalidate DOM ref cache
+  _lvlPeak=0;_lvlSmooth=0;_lvlLastUpd=0;_lvlRefs=null;_lvlRefsTried=0;
   if(protocolIsActive())protocolResetToFirst(true);
   lastStateLogAt=0;
   hist={S:[],D1:[],D2:[],t:[],c0:[],c2:[],c3:[]};
@@ -4290,6 +4378,7 @@ function maybeLogState(now){
       raw:[_r3(raw[0]),_r3(raw[1]),_r3(raw[2]),_r3(raw[3]),_r3(raw[4]),_r3(raw[5]),_r3(raw[6]),_r3(raw[7])],
       zN:[_r3(zN[0]),_r3(zN[1]),_r3(zN[2]),_r3(zN[3]),_r3(zN[4]),_r3(zN[5]),_r3(zN[6]),_r3(zN[7])],
       pHz:Math.round(pHz*10)/10,pConf:_r3(pConf),isV:isVoiced?1:0,
+      clip:((typeof raw!=='undefined'&&raw&&typeof raw[0]==='number'&&raw[0]>0.85)?1:0), // v56 Item 4 + audit-fix (MEDIUM C1): clipping-zone flag, defensive guard against undefined raw
       hnr:_r3(hnrDb),jit:_r3(jitterRel),shim:_r3(shimmerDb),
       snr:_r3(curSNR),phCo:_r3(phaseCoher),rState:researchDecisionState,rProb:_r3(researchDecisionProb),rEnt:_r3(researchDecisionEntropy),rSrc:researchDecisionSource,f1:Math.round(f1Hz),f2:Math.round(f2Hz),f3:Math.round(f3Hz),f4:Math.round(f4Hz),f5:Math.round(f5Hz),df:_r3(dfProxyHz),idsp:_r3(ifDispCV),ubf:_r3(ubFrac),ubc:Math.round(ubCentHz),fmtN:formantN|0,b1:Math.round(b1Hz),b2:Math.round(b2Hz),
       zJit:(window.__SENSE?_r3(window.__SENSE.zJitter||0):0),zShm:(window.__SENSE?_r3(window.__SENSE.zShimmer||0):0),sA:(window.__SENSE?_r3(window.__SENSE.arousal):0),sV:(window.__SENSE?_r3(window.__SENSE.valence):0),sD:(window.__SENSE?_r3(window.__SENSE.dominance):0),sE:(window.__SENSE&&window.__SENSE._lastNarrTag?window.__SENSE._lastNarrTag:''),sPri:(window.__SENSE&&window.__SENSE.primalTop>=0&&window.__SENSE_PRIMAL_NAMES?window.__SENSE_PRIMAL_NAMES[window.__SENSE.primalTop]:''),sImp:(window.__SENSE&&window.__SENSE.impTop>=0&&window.__SENSE_IMP_NAMES?window.__SENSE_IMP_NAMES[window.__SENSE.impTop]:''),sRdy:(window.__SENSE&&window.__SENSE.ready?1:0),ars:(window.__SENSE?_r3(window.__SENSE.ars):0),pri:(window.__SENSE&&window.__SENSE.primal?[_r3(window.__SENSE.primal[0]),_r3(window.__SENSE.primal[1]),_r3(window.__SENSE.primal[2]),_r3(window.__SENSE.primal[3]),_r3(window.__SENSE.primal[4]),_r3(window.__SENSE.primal[5])]:[0,0,0,0,0,0]),imp:(window.__SENSE&&window.__SENSE.imp?[_r3(window.__SENSE.imp[0]),_r3(window.__SENSE.imp[1]),_r3(window.__SENSE.imp[2]),_r3(window.__SENSE.imp[3]),_r3(window.__SENSE.imp[4])]:[0,0,0,0,0]),lRel:(window.__SENSE?_r3(window.__SENSE._loudRel||0):0),f2d:(window.__SENSE?_r3(window.__SENSE._f2Dev||0):0)});
@@ -4564,6 +4653,8 @@ function extract(now){
     if(voicedForBaseline){
       blLoud.push(raw[0]);if(blLoud.length>BL)blLoud.shift();_blWriteVer.l++;
       blRate.push(raw[2]);if(blRate.length>BL)blRate.shift();_blWriteVer.r++;
+      // v56 Item 1: accumulate HNR during baseline window for fingerprint (metadata only)
+      if(typeof hnrDb==='number'&&isFinite(hnrDb)){blHnr.push(hnrDb);if(blHnr.length>BL)blHnr.shift();}
     }
     if(voicedForBaseline&&rms>silenceGateRms&&pConf>0.4){
       rmsBuf.push(rms);if(rmsBuf.length>_jlim)rmsBuf.shift();
@@ -4637,6 +4728,8 @@ function extract(now){
       blPitch.push(pHz);if(blPitch.length>BL)blPitch.shift();_blWriteVer.p++;
       blLoud.push(raw[0]);if(blLoud.length>BL)blLoud.shift();_blWriteVer.l++;
       blRate.push(raw[2]);if(blRate.length>BL)blRate.shift();_blWriteVer.r++;
+      // v56 Item 1: demo-path HNR accumulation for baseline fingerprint (metadata only)
+      if(typeof hnrDb==='number'&&isFinite(hnrDb)){blHnr.push(hnrDb);if(blHnr.length>BL)blHnr.shift();}
       pitchBuf.push(pHz);if(pitchBuf.length>JBUF)pitchBuf.shift();
       rms=raw[0]*0.1;rmsBuf.push(Math.max(0.001,rms));if(rmsBuf.length>JBUF)rmsBuf.shift();
     }
@@ -5395,6 +5488,9 @@ function tick(now){
     chAccumCount++;
     if(isVoiced){for(var ci2=0;ci2<NC;ci2++)chAccumVoiced[ci2]+=sm[ci2];chAccumVoicedCount++;} // A21
     updateBaselineOverlay(now);
+    // v56 Item 3 follow-up: drive input-level meter from the main 30 Hz tick so it works during recording
+    // regardless of V7 panel visibility (throttle inside updateInputLvlMeter coalesces any double-calls)
+    if(typeof raw!=='undefined'&&raw&&typeof raw[0]==='number')updateInputLvlMeter(raw[0]);
     applyUI(now,false);
   }catch(e){console.warn('AEther tick:',e);}
 }
@@ -5698,7 +5794,7 @@ function captureExportBundle(){
     calNoiseFloorRef:_r3(calNoiseFloorRef),
     covReady:covReady,
     covStage:covStage,
-    fixedBase:{locked:fixedBase.locked,pitchMu:fixedBase.pitchMu,pitchSd:fixedBase.pitchSd,loudMu:fixedBase.loudMu,rateMu:fixedBase.rateMu},
+    fixedBase:{locked:fixedBase.locked,pitchMu:fixedBase.pitchMu,pitchSd:fixedBase.pitchSd,loudMu:fixedBase.loudMu,rateMu:fixedBase.rateMu,hnrMu:fixedBase.hnrMu||0,lockTimeMs:fixedBase.lockTimeMs||0,lockFrameCount:fixedBase.lockFrameCount||0}, // v56 Item 1: baseline fingerprint fields
     nFloorDb:_r3(nFloorDb),
     noiseMedian:noiseMedian,
     noiseMAD:noiseMAD,
@@ -5750,8 +5846,6 @@ function captureExportBundle(){
       mlLabel:_S._mlLabel||'',
       mlConf:Math.round((_S._mlConf||0)*1000)/1000,
       mlSource:_S._mlSource||'heuristic',
-      nervousCleanAudioFlags:_S._nervousCleanAudioFlag||0,
-      happyNewAdmit:_S._happyNewAdmit||0,
       f2Dev:_r3(_S._f2Dev||0),
       f2Baseline:Math.round(_S._f2Baseline||0)
     };})(),
@@ -7536,7 +7630,7 @@ function genReport(){
     'Crying':'#9b6bcc','Withdrawn':'#cc6b9b','Sinking':'#cc6b9b','Yielding':'#cc6b9b','Withdrawing':'#888888','Fading Out':'#888888','Exhausted':'#666680',
     'Angry':'#cc5555','Frustrated':'#cc8844','Strained':'#cc6b6b','Stressed':'#e07830',
     'Running Hot':'#e85d5d','Intense':'#e8604a','Assertive':'#e8a83c','Commanding':'#e8a83c','Focused':'#d4a855','Composed':'#d4a855','Magnetic':'#d4a855',
-    'Nervous':'#ccaa55','Tense':'#e07830','On Guard':'#e8c84a','Alert':'#e8c84a','Warm':'#e0c44a','Assuring':'#e0c44a','Tender':'#6bcc8f',
+    'Nervous':'#ccaa55','Tense':'#e07830','On Guard':'#e8c84a','Alert':'#e8c84a','Warm':'#e0c44a','Assuring':'#e0c44a','Tender':'#6bcc8f','Fragile':'#c49be8',
     'Transitioning':'#888888','Settling In':'#888888','Centered':'#6bcc8f','Listening':'#555555','Searching':'#ccaa55',
     'Grounded':'#9b7fd4','Quiet Strength':'#9b7fd4','Rock Steady':'#5d8de8','In the Zone':'#5cc97a',
     'Burdened':'#7a7aaa','Resolute':'#c8952e','Deliberate':'#9b7fd4','Struggling':'#e07830','Distress':'#e07830','Subdued':'#888888','Guarded':'#888888','Threatening':'#cc5555','Threatened':'#cc5555','Controlled':'#5d8de8',
@@ -7861,6 +7955,9 @@ function genExportJSON(){
       qualityMedianVoiced:_r3(reportStats.voiced.qMed),
       decisivenessMedianNonQuiet:_r3(reportStats.nonQuiet.decMed),
       quietPct:_r3(reportStats.all.quietPct),
+      // v56 Item 4: clipping roll-up — counts frames where raw[0]>0.85 (see per-frame 'clip' flag)
+      clippedFrameCount:(function(){var c=0;for(var _ci=0;_ci<log.length;_ci++){if(log[_ci]&&log[_ci].clip===1)c++;}return c;})(),
+      clippedFramePct:(function(){if(!log.length)return 0;var c=0;for(var _ci2=0;_ci2<log.length;_ci2++){if(log[_ci2]&&log[_ci2].clip===1)c++;}return _r3(100*c/log.length);})(),
       subsets:{all:reportStats.all,nonQuiet:reportStats.nonQuiet,voiced:reportStats.voiced},
       blockOnly:blockSummary.blockOnly,
       blockCore:{windowSec:_r3(BLOCK_CORE_EDGE_SEC),subsets:blockSummary.blockOnly.core}
@@ -7913,7 +8010,12 @@ function genExportJSON(){
       pitchCV:bundle.fixedBase.pitchMu>0?_r3(bundle.fixedBase.pitchSd/bundle.fixedBase.pitchMu):0,
       loudMean:_r3(bundle.fixedBase.loudMu),
       rateMean:_r3(bundle.fixedBase.rateMu),
-      f2Mean:bundle.blF2Mean
+      f2Mean:bundle.blF2Mean,
+      // v56 Item 1: baseline fingerprint — enables regression battery to normalize by baseline quality
+      hnrMean_dB:_r3(bundle.fixedBase.hnrMu||0),
+      lockTimeMs:bundle.fixedBase.lockTimeMs||0,
+      lockFrameCount:bundle.fixedBase.lockFrameCount||0,
+      fingerprintVersion:1
     },
     covariance:{
       covReady:bundle.covReady,
@@ -8362,6 +8464,9 @@ function v7InjectUI(){
       '</div>'+
       '<div class="v7-divider"></div>'+
       '<div class="v7-live-pair"><div><div class="lab">Pitch</div><div id="v7-pitch-read">—</div></div><div><div class="lab">Level</div><div id="v7-level-read">—</div></div><div><div class="lab">Pace</div><div id="v7-pace-read">—</div></div><div><div class="lab">Pause</div><div id="v7-pause-read">—</div></div></div>'+
+      /* v56 Item 3: input-level meter (analysis phase) — mirrors baseline-overlay meter */
+      '<div style="padding:6px 2px 2px"><div class="lab" style="font-size:9px;color:var(--tx3);letter-spacing:.08em;margin-bottom:4px">Input level<span id="v7-lvl-val" style="float:right;font-weight:600;color:var(--tx2)">0%</span></div>'+
+      '<div class="lvl-meter v7-lvl" id="v7-lvl-meter"><div class="lvl-fill" id="v7-lvl-fill"></div><div class="lvl-peak" id="v7-lvl-peak"></div><div class="lvl-clip" id="v7-lvl-clip"></div></div></div>'+
       '<div class="v7-divider"></div>'+
       '<div class="v7-legend" style="margin-bottom:8px">Head winners</div>'+
       '<div id="v7-head-winners"></div>'+
@@ -8440,6 +8545,8 @@ function v7UpdateUI(now){
   v7SetText(V7.ui.protoStatus, (V7.protoReady?((V7.protoCounts[stateName]||0)+' live updates'):'seeded') + ((researchAdaptiveStats&&researchAdaptiveStats.ready)?' · adaptive':' · warming'));
   v7SetText(V7.ui.pitchRead, (typeof pHz==='number'&&pHz>0)?(pHz.toFixed(0)+' Hz'):'—');
   v7SetText(V7.ui.levelRead, (typeof raw!=='undefined'&&raw)?(v7Num(raw[0]).toFixed(2)):'—');
+  // v56 Item 3: drive input-level meter during analysis phase (V7 panel mount)
+  if(typeof raw!=='undefined'&&raw&&typeof raw[0]==='number')updateInputLvlMeter(raw[0]);
   v7SetText(V7.ui.paceRead, (typeof raw!=='undefined'&&raw)?(v7Num(raw[2]).toFixed(2)):'—');
   v7SetText(V7.ui.pauseRead, (typeof raw!=='undefined'&&raw)?(Math.round(v7Num(raw[3])*100)+'%'):'—');
   v7SetText(V7.ui.clock, (typeof UI!=='undefined'&&UI&&UI.tmr)?UI.tmr.textContent:'research fusion');
@@ -9186,9 +9293,7 @@ var S={
   // Near zero = stable (neutral/rhetorical delivery)
   // Positive = F2 above baseline (animation, possible smiling)
   _f2Dev:0, _f2Baseline:0,
-  // Instrumentation
-  _nervousCleanAudioFlag:0,
-  _happyNewAdmit:0,
+  // (Fix 55: removed _nervousCleanAudioFlag and _happyNewAdmit — diagnostic-only, never read)
   // UI state
   ready:false, expanded:false, detailOpen:false,
   booted:false,
@@ -9203,7 +9308,7 @@ var _HERO_VALENCE={'Light':5,'Alive':5,'In the Zone':5,
   'Assuring':4,'Tender':4,'Grounded':4,'Rock Steady':4,
   'Focused':3,'Centered':3,'Controlled':3,'Deliberate':3,'Resolute':3,'Assertive':3,
   'Transitioning':2,'Searching':2,'Vulnerable':2,
-  'Running Hot':1,'On Guard':1,'Intense':1,'Frustrated':1,'Nervous':1,'Withdrawn':1,'Checked Out':1,'Subdued':1,'Burdened':1,
+  'Running Hot':1,'On Guard':1,'Intense':1,'Frustrated':1,'Nervous':1,'Withdrawn':1,'Checked Out':1,'Subdued':1,'Burdened':1,'Tense':1,
   'Fragile':0,'Strained':0,'Struggling':0,'Exhausted':0,'Stressed':0,'Threatened':0,'Sad':0,'Moved':0,'Crying':0};
 
 // Arc-aware UI: label → CSS heroKey map for emotion colors
@@ -9215,7 +9320,7 @@ var _HERO_KEY_MAP={'Crying':'crying','Sad':'sad','Moved':'moved','Threatened':'a
   'Running Hot':'frustrated','Controlled':'commanding','Grounded':'warm','Subdued':'exhausted',
   'Burdened':'sad','Rock Steady':'steady','Assuring':'assuring','Tender':'tender',
   'Assertive':'commanding','Focused':'magnetic','Searching':'nervous','Centered':'centered',
-  'Transitioning':'default','Checked Out':'default','Listening':'default'};
+  'Transitioning':'default','Checked Out':'checked-out','Listening':'default','Tense':'stressed'};
 
 // ── Session Replay (Fix 54) ──
 var _rvFrames=null,_rvAudio=null,_rvCursor=0,_rvActive=false;
@@ -9418,15 +9523,8 @@ function computeDimensions(){
   var rawD=0.35*z0 - 0.25*z1 + 0.20*z5 + 0.20*z7;
   S.dominance+=(clamp(rawD,-1,1)-S.dominance)*SENSE_EMA;
 
-  // Dual-EMA: maintain separate ML-rate tracks for future use (EMA=0.12)
-  // MLP v17b was trained on session JSON where sA/sV/sD used SENSE_EMA=0.18.
-  // The feature vector in _mlOverride correctly uses S.arousal/valence/dominance (fast EMA).
-  // ML-rate tracks preserved at 0.12 for potential future retraining with slower smoothing.
-  var _cA=clamp(rawA,-1,1),_cV=clamp(rawV,-1,1),_cD=clamp(rawD,-1,1);
-  if(S.arousal_ml===undefined){S.arousal_ml=_cA;S.valence_ml=_cV;S.dominance_ml=_cD;}
-  S.arousal_ml+=(_cA-S.arousal_ml)*SENSE_EMA_ML;
-  S.valence_ml+=(_cV-S.valence_ml)*SENSE_EMA_ML;
-  S.dominance_ml+=(_cD-S.dominance_ml)*SENSE_EMA_ML;
+  // (Fix 55: removed arousal_ml/valence_ml/dominance_ml dual-EMA tracks — computed every
+  // frame but never read or exported. SENSE_EMA_ML=0.12 constant kept for documentation.)
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -9840,7 +9938,7 @@ function senseUpdateBadge(){
 // Heuristic narrative uses SENSE_EMA=0.18 (fast response for emotion bursts).
 // MLP v17b was trained on session JSON with SENSE_EMA=0.18, so features use
 // S.arousal/valence/dominance (fast EMA) for distribution consistency.
-// ML-rate EMA (0.12) preserved in S.arousal_ml etc. for future retraining.
+// ML-rate EMA constant (SENSE_EMA_ML=0.12) preserved for documentation. Dual-EMA tracks removed in Fix 55 (computed but never read).
 //
 // CLASSES: 0=HAPPY 1=SAD 2=COMMANDING 3=INTENSE 4=LOW_ENERGY
 //          5=TENSE 6=ANGRY 7=FRUSTRATED 8=NERVOUS
@@ -10443,7 +10541,7 @@ function _mlOverride(currentHero,currentHeroKey,currentBody){
   // correctly identifies these as Intense/Tense/On Guard; ML should not override.
   // Tested: Jesse 27.8%→8.9%, YourHappy 30.3%→14.6%, LeahHappy 24.2%→12.4%.
   // Heuristic Happy still fires independently (Joy score fallback, HNR path).
-  var _happyBlockCluster={'Intense':1,'Tense':1,'On Guard':1,'Strained':1,'Running Hot':1,'Nervous':1,'Struggling':1};
+  var _happyBlockCluster={'Intense':1,'Tense':1,'On Guard':1,'Strained':1,'Running Hot':1,'Nervous':1,'Struggling':1,'Fragile':1,'Moved':1,'Tender':1};
   if(result.label==='HAPPY'&&_happyBlockCluster[currentHero])return null;
   // Fix 34: ML→Nervous hnrLow guard. When HNR is degraded (S.hnrLow=true, mean<12dB),
   // the MLP sees a "compressed audio fingerprint" (10 of 28 features HNR-contaminated)
@@ -10585,15 +10683,6 @@ function senseNarrative(){
     hero='Light';heroKey='light';
     body='There\u2019s a lightness in your voice that\u2019s unmistakable. Your pitch is clear and animated, your pace has quickened, and there\u2019s a brightness that comes from resonance, not volume. A listener would hear something open and effortless.';
   }
-  // Fix 3 instrumentation: count frames that WOULD become Happy with pConf gate swap.
-  // These are frames where all 7 non-Gate-7 Happy conditions pass, pConf>0.45, but raw[5]<=0.10.
-  // If this count is near zero on negative speakers, Fix 3 is safe to ship.
-  if(safeArr('raw',5)<=0.10&&safeG('pConf')>0.45&&safeG('isVoiced')
-    &&(zHNR>0.20||(S.primal[4]>0.50&&S._loudRel>-0.10&&S.valence>0.00))
-    &&zPitchCons<0.55&&zAmpCons<0.25&&d<0.20&&zLoud<0.70&&a<0.50&&S.valence>-0.10){
-    if(!S._happyNewAdmit)S._happyNewAdmit=0;
-    S._happyNewAdmit++;
-  }
   // STRESSED/ANXIOUS: high pitch, unstable, fast, breathy, tense
   else if(zPitch>0.3&&zPitchCons<-0.6&&zRate>0.3&&zHNR<-0.3&&zAmpCons<-0.4){
     hero='Stressed';heroKey='stressed';
@@ -10608,9 +10697,6 @@ function senseNarrative(){
   else if(zPitch>0.2&&zPause>0.4&&zLoud<-0.2&&zPitchCons<-0.4&&zAmpCons<-0.3){
     hero='Nervous';heroKey='nervous';
     body='Your voice is giving away some nerves \u2014 rising in pitch, pausing more, getting quieter. The fix is physical, not mental: plant your feet, drop your shoulders, and start your next sentence low and slow. Your voice will follow your body.';
-    // Fix 4: Instrumentation — flag potential clean-audio false positives
-    if(!S._nervousCleanAudioFlag)S._nervousCleanAudioFlag=0;
-    if(safeG('pConf')>0.88&&safeG('curSNR')>20)S._nervousCleanAudioFlag++;
   }
   // NERVOUS (constricted): pitch DROPS below baseline + extreme pitch instability (wobble)
   // Validated on Christine Blasey Ford testimony: pitch -14%, pitchCons 0.096 (lowest of all tests)
@@ -10620,9 +10706,6 @@ function senseNarrative(){
   else if(safeG('isVoiced')&&_loudRel<-0.05&&zPitchCons<-0.3&&safeArr('raw',5)<0.15&&zPause>0.15&&a<-0.05&&d<-0.05){
     hero='Nervous';heroKey='nervous';
     body='There\u2019s a tightness in your voice \u2014 it\u2019s constricting, wobbling slightly, pulling inward. This is your body\u2019s tension showing up in your throat. Slow your breathing, relax your jaw, and let your next sentence come out on a full exhale.';
-    // Fix 4: Instrumentation — flag potential clean-audio false positives
-    if(!S._nervousCleanAudioFlag)S._nervousCleanAudioFlag=0;
-    if(safeG('pConf')>0.88&&safeG('curSNR')>20)S._nervousCleanAudioFlag++;
   }
   // FRUSTRATED: building tension
   // Emotion and vocal state are independent dimensions — a person can be in CLEAR vocal
@@ -10838,8 +10921,9 @@ function senseNarrative(){
   if(!S._heroSeenSet[hero])S._heroSeenSet[hero]=true;
 
   // ML override: if ML is confident and heuristic produced a generic label, use ML instead
+  var _mo=null;
   try{
-    var _mo=_mlOverride(hero,heroKey,body);
+    _mo=_mlOverride(hero,heroKey,body);
     if(_mo){hero=_mo.hero;heroKey=_mo.heroKey;body=_mo.body;}
   }catch(e){}
 
@@ -11946,7 +12030,7 @@ body.v7-aether.coach-light #advanced-toggle{
   function captureProfileData(){
     var NC=8;
     return {
-      fixedBase:{locked:fixedBase.locked,pitchMu:fixedBase.pitchMu,pitchSd:fixedBase.pitchSd,loudMu:fixedBase.loudMu,rateMu:fixedBase.rateMu},
+      fixedBase:{locked:fixedBase.locked,pitchMu:fixedBase.pitchMu,pitchSd:fixedBase.pitchSd,loudMu:fixedBase.loudMu,rateMu:fixedBase.rateMu,hnrMu:fixedBase.hnrMu||0,lockTimeMs:fixedBase.lockTimeMs||0,lockFrameCount:fixedBase.lockFrameCount||0}, // v56 Item 1
       calibration:{nFloor:nFloor,nFloorDb:nFloorDb,noiseMedian:noiseMedian,noiseMAD:noiseMAD,voiceGateRms:voiceGateRms,silenceGateRms:silenceGateRms,calQuality:calQuality,dbRRef:dbRRef},
       covariance:{
         covMu:Array.prototype.slice.call(covMu),
@@ -11966,7 +12050,7 @@ body.v7-aether.coach-light #advanced-toggle{
     if(!p)return;
     var NC=8;
     var fb=p.fixedBase||{};
-    fixedBase={locked:!!fb.locked,pitchMu:fb.pitchMu||0,pitchSd:fb.pitchSd||0,loudMu:fb.loudMu||0,rateMu:fb.rateMu||0};
+    fixedBase={locked:!!fb.locked,pitchMu:fb.pitchMu||0,pitchSd:fb.pitchSd||0,loudMu:fb.loudMu||0,rateMu:fb.rateMu||0,hnrMu:fb.hnrMu||0,lockTimeMs:fb.lockTimeMs||0,lockFrameCount:fb.lockFrameCount||0}; // v56 Item 1
 
     var cal=p.calibration||{};
     nFloor=cal.nFloor||0.003;
